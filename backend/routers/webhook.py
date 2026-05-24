@@ -35,8 +35,12 @@ def verify_signature(payload: bytes, signature: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 async def process_pr(owner: str, repo: str, pr_number: int):
+    print(f"🔍 Starting review for PR #{pr_number} — {owner}/{repo}")  # ← add
     try:
         files = await get_pr_files(owner, repo, pr_number)
+        print(f"📁 Files count: {len(files)}")  # ← add
+        for f in files:
+            print(f"  → {f.get('filename')} patch_exists:{bool(f.get('patch'))}")  # ← add
     except Exception as e:
         print(f"Failed to fetch PR files: {e}")
         return
