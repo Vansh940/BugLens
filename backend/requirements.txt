@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+groq
+google-generativeai
+python-dotenv
+redis
+sqlalchemy[asyncio]
+asyncpg
+psycopg2-binary
+pydantic
+httpx
+pytest
+pytest-asyncio
+aiosqlite
+greenlet

@@ -1,0 +1,80 @@
+{
+  "name": "buglens",
+  "displayName": "BugLens",
+  "description": "Instant AI-powered code review — catch bugs, security flaws, and bad practices before they ship.",
+  "version": "0.2.0",
+  "publisher": "Vansh",
+  "icon": "icon.png",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Linters", "Other"],
+  "keywords": ["code review", "ai", "bug detection", "security", "linter"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "buglens.reviewCode",
+        "title": "BugLens: Review This Code",
+        "icon": {
+          "light": "icon.png",
+          "dark": "icon.png"
+        }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "buglens.reviewCode",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "buglens.reviewCode",
+          "when": "editorIsOpen",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "buglens.reviewCode",
+          "when": "editorTextFocus",
+          "group": "1_modification"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "BugLens",
+      "properties": {
+        "buglens.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "URL of your BugLens backend server"
+        },
+        "buglens.reviewOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically review code when you save a file"
+        },
+        "buglens.showInlineHighlights": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight problematic lines directly in the editor"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
