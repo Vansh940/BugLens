@@ -17,7 +17,7 @@
 
 **Catch bugs · Fix security flaws · Improve code quality — before it ships**
 
-[🔌 Install Extension](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens) · [📖 API Docs](https://buglens-api.onrender.com/docs) · [🐛 Report Bug](https://github.com/YOUR_USERNAME/buglens/issues)
+[🔌 Install Extension](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens) · [📖 API Docs](https://buglens-api.onrender.com/docs) · [🐛 Report Bug](https://github.com/Vansh940/buglens/issues)
 
 </div>
 
