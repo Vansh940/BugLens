@@ -3,7 +3,7 @@
   "displayName": "BugLens",
   "description": "Instant AI-powered code review — catch bugs, security flaws, and bad practices before they ship.",
   "version": "0.2.0",
-  "publisher": "Vansh",
+  "publisher": "VanshDev",
   "icon": "icon.png",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Linters", "Other"],
@@ -50,7 +50,7 @@
       "properties": {
         "buglens.apiUrl": {
           "type": "string",
-          "default": "http://localhost:8000",
+          "default": "https://buglens-api.onrender.com",
           "description": "URL of your BugLens backend server"
         },
         "buglens.reviewOnSave": {

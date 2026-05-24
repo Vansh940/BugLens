@@ -11,6 +11,11 @@ class Language(str, Enum):
     rust       = "rust"
     cpp        = "cpp"
     c          = "c"
+    json       = "json"      # ← add this
+    yaml       = "yaml"      # ← add this
+    html       = "html"      # ← add this
+    css        = "css"       # ← add this
+    bash       = "bash"      # ← add this
 
 class ReviewRequest(BaseModel):
     code: str

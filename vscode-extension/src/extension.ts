@@ -186,7 +186,10 @@ async function runReview(editor: vscode.TextEditor) {
     } else if (err.code === 'ECONNABORTED') {
       msg = 'BugLens: Request timed out. The server took too long to respond.';
     } else if (status === 422) {
-      msg = 'BugLens: Invalid request — ' + (detail ?? 'check your code and language.');
+    const detailMsg = typeof detail === 'string' 
+      ? detail 
+      : JSON.stringify(detail);
+    msg = 'BugLens: Invalid request — ' + (detailMsg ?? 'check your code and language.');
     } else if (status === 400) {
       msg = 'BugLens: ' + (detail ?? 'Bad request.');
     } else if (status === 429) {
