@@ -44,3 +44,5 @@ node_modules/
 npm-debug.log*
 
 ai_code_reviewer_guide_groq.md
+
+bad_code.py

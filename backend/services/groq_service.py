@@ -27,8 +27,9 @@ async def call_groq_with_retry(messages: list, retries: int = 3) -> str:
             completion = await client.chat.completions.create(
                 model=GROQ_MODEL,
                 max_tokens=4096,
-                temperature=0.2,
-                messages=messages
+                temperature=0.1,          # lower = more consistent JSON
+                messages=messages,
+                response_format={"type": "json_object"}  # ← forces valid JSON
             )
             return completion.choices[0].message.content
         except RateLimitError:
@@ -66,16 +67,9 @@ async def review_code(request: ReviewRequest) -> ReviewResponse:
     raw = strip_json_fences(raw)
 
     try:
-        # strict=False allows control characters in strings
-        data = json.loads(raw, strict=False)
+        data = json.loads(raw)
     except json.JSONDecodeError as e:
-        # Second attempt: clean control characters then parse
-        try:
-            import re
-            cleaned = re.sub(r'[\x00-\x1f\x7f](?!["\\/bfnrtu])', ' ', raw)
-            data = json.loads(cleaned)
-        except json.JSONDecodeError:
-            raise ValueError(f"Groq returned invalid JSON: {e}\nRaw: {raw[:300]}")
+        raise ValueError(f"Groq returned invalid JSON: {e}\nRaw: {raw[:300]}")
 
     data["review_id"]  = str(uuid.uuid4())
     data["model_used"] = GROQ_MODEL
