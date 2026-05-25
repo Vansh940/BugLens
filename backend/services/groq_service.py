@@ -66,9 +66,16 @@ async def review_code(request: ReviewRequest) -> ReviewResponse:
     raw = strip_json_fences(raw)
 
     try:
-        data = json.loads(raw)
+        # strict=False allows control characters in strings
+        data = json.loads(raw, strict=False)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Groq returned invalid JSON: {e}\nRaw: {raw[:300]}")
+        # Second attempt: clean control characters then parse
+        try:
+            import re
+            cleaned = re.sub(r'[\x00-\x1f\x7f](?!["\\/bfnrtu])', ' ', raw)
+            data = json.loads(cleaned)
+        except json.JSONDecodeError:
+            raise ValueError(f"Groq returned invalid JSON: {e}\nRaw: {raw[:300]}")
 
     data["review_id"]  = str(uuid.uuid4())
     data["model_used"] = GROQ_MODEL
