@@ -70,13 +70,6 @@ def strip_json_fences(text: str) -> str:
 
 # ─── Groq call with key rotation ─────────────────────────────────────────────
 async def call_groq_with_retry(messages: list, retries: int = 3) -> str:
-    """
-    Call Groq with retry logic AND key rotation.
-    On RateLimitError: rotate to next key immediately (no wait).
-    On other errors: exponential backoff up to `retries` attempts.
-    All keys exhausted: raise RateLimitError to caller.
-    """
-    # Track how many keys we've tried in this call
     keys_tried = 0
 
     while keys_tried < len(API_KEYS):
@@ -86,28 +79,21 @@ async def call_groq_with_retry(messages: list, retries: int = 3) -> str:
                 completion = await client.chat.completions.create(
                     model=GROQ_MODEL,
                     max_tokens=4096,
-                    temperature=0,                              # deterministic
+                    temperature=0,
                     messages=messages,
                     response_format={"type": "json_object"}
                 )
                 return completion.choices[0].message.content
 
             except RateLimitError:
-                # Don't retry with same key — rotate immediately
                 rotated = _rotate_key()
                 if rotated:
                     keys_tried += 1
-                    break   # break inner loop → try next key
+                    break
                 else:
-                    # All keys exhausted
-                    raise RateLimitError(
-                        message="All API keys have hit their rate limits. Please wait before retrying.",
-                        response=None,
-                        body=None
-                    )
+                    raise Exception("All API keys have hit their rate limits. Please wait before retrying.")
 
             except Exception as e:
-                # Non-rate-limit error: retry with backoff on same key
                 if attempt < retries - 1:
                     wait = 2 ** attempt
                     print(f"[BugLens] Request failed (attempt {attempt + 1}): {e}. Retrying in {wait}s...")
@@ -117,12 +103,7 @@ async def call_groq_with_retry(messages: list, retries: int = 3) -> str:
 
         keys_tried += 1
 
-    # Should never reach here but safety net
-    raise RateLimitError(
-        message="All API keys exhausted.",
-        response=None,
-        body=None
-    )
+    raise Exception("All API keys exhausted.")
 
 # ─── Main review function (completely unchanged) ──────────────────────────────
 async def review_code(request: ReviewRequest) -> ReviewResponse:
