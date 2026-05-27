@@ -16,11 +16,11 @@ const EXT_TO_LANG: Record<string, string> = {
 };
 
 // ─── Globals ─────────────────────────────────────────────────────────────────
-let criticalDeco: vscode.TextEditorDecorationType;
-let warningDeco: vscode.TextEditorDecorationType;
+let criticalDeco:   vscode.TextEditorDecorationType;
+let warningDeco:    vscode.TextEditorDecorationType;
 let suggestionDeco: vscode.TextEditorDecorationType;
-let statusBarItem: vscode.StatusBarItem;
-let currentPanel: vscode.WebviewPanel | undefined;
+let statusBarItem:  vscode.StatusBarItem;
+let currentPanel:   vscode.WebviewPanel | undefined;
 
 function getApiUrl(): string {
   return vscode.workspace
@@ -58,8 +58,8 @@ function createDecorations() {
 }
 
 function clearDecorations(editor: vscode.TextEditor) {
-  editor.setDecorations(criticalDeco, []);
-  editor.setDecorations(warningDeco, []);
+  editor.setDecorations(criticalDeco,   []);
+  editor.setDecorations(warningDeco,    []);
   editor.setDecorations(suggestionDeco, []);
 }
 
@@ -69,8 +69,8 @@ function applyDecorations(editor: vscode.TextEditor, issues: any[]) {
     .get<boolean>('showInlineHighlights', true);
   if (!showHighlights) { return; }
 
-  const critical: vscode.DecorationOptions[] = [];
-  const warning: vscode.DecorationOptions[] = [];
+  const critical:   vscode.DecorationOptions[] = [];
+  const warning:    vscode.DecorationOptions[] = [];
   const suggestion: vscode.DecorationOptions[] = [];
 
   for (const issue of issues) {
@@ -78,7 +78,7 @@ function applyDecorations(editor: vscode.TextEditor, issues: any[]) {
     const lineIdx = issue.line_number - 1;
     if (lineIdx < 0 || lineIdx >= editor.document.lineCount) { continue; }
 
-    const line = editor.document.lineAt(lineIdx);
+    const line  = editor.document.lineAt(lineIdx);
     const range = new vscode.Range(line.range.start, line.range.end);
     const hoverMsg = new vscode.MarkdownString(
       `**BugLens [${issue.severity.toUpperCase()}]** — ${issue.title}\n\n` +
@@ -88,26 +88,22 @@ function applyDecorations(editor: vscode.TextEditor, issues: any[]) {
     hoverMsg.isTrusted = true;
     const deco: vscode.DecorationOptions = { range, hoverMessage: hoverMsg };
 
-    if (issue.severity === 'critical') {
-      critical.push(deco);
-    } else if (issue.severity === 'warning') {
-      warning.push(deco);
-    } else {
-      suggestion.push(deco);
-    }
+    if (issue.severity === 'critical')     { critical.push(deco); }
+    else if (issue.severity === 'warning') { warning.push(deco); }
+    else                                   { suggestion.push(deco); }
   }
 
-  editor.setDecorations(criticalDeco, critical);
-  editor.setDecorations(warningDeco, warning);
+  editor.setDecorations(criticalDeco,   critical);
+  editor.setDecorations(warningDeco,    warning);
   editor.setDecorations(suggestionDeco, suggestion);
 }
 
 // ─── Status bar ───────────────────────────────────────────────────────────────
 function updateStatusBar(score: number, issueCount: number) {
   const icon = score >= 80 ? '$(check)' : score >= 60 ? '$(warning)' : '$(error)';
-  statusBarItem.text = `${icon} BugLens: ${score}/100  (${issueCount} issues)`;
+  statusBarItem.text    = `${icon} BugLens: ${score}/100  (${issueCount} issues)`;
   statusBarItem.tooltip = `BugLens — Score: ${score}/100, Issues: ${issueCount}. Click to review again.`;
-  statusBarItem.color = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
+  statusBarItem.color   = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
   statusBarItem.show();
 }
 
@@ -124,7 +120,7 @@ async function runReview(editor: vscode.TextEditor) {
   }
 
   const filename = editor.document.fileName.split(/[\\/]/).pop() || '';
-  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  const ext      = filename.split('.').pop()?.toLowerCase() || '';
   const language = EXT_TO_LANG[ext] || ext || 'plaintext';
 
   // Open or reuse panel — show loading immediately
@@ -139,10 +135,9 @@ async function runReview(editor: vscode.TextEditor) {
     );
     currentPanel.onDidDispose(() => { currentPanel = undefined; });
   }
-  currentPanel.title = `BugLens — ${filename}`;
+  currentPanel.title        = `BugLens — ${filename}`;
   currentPanel.webview.html = getLoadingHtml(filename);
 
-  // Clear old inline highlights
   clearDecorations(editor);
 
   try {
@@ -152,28 +147,25 @@ async function runReview(editor: vscode.TextEditor) {
       { timeout: 30000 }
     );
 
-    // Apply inline highlights
     applyDecorations(editor, data.issues ?? []);
-
-    // Update status bar
     updateStatusBar(data.score, data.issues?.length ?? 0);
 
-    // Show results
-    currentPanel.webview.html = getReviewHtml(data, filename);
+    // ← pass code and language for chat
+    currentPanel.webview.html = getReviewHtml(data, filename, code, language);
 
-    // Handle messages from webview
     currentPanel.webview.onDidReceiveMessage(msg => {
       if (msg.command === 'copyFix') {
         vscode.env.clipboard.writeText(msg.text);
         vscode.window.showInformationMessage('BugLens: Fix copied to clipboard!');
       }
       if (msg.command === 'jumpToLine') {
-        const line = msg.line - 1;
+        const line  = msg.line - 1;
         const range = new vscode.Range(line, 0, line, 0);
         vscode.window.activeTextEditor?.revealRange(
           range, vscode.TextEditorRevealType.InCenter
         );
       }
+      // chat is handled directly in the webview via fetch — no handler needed here
     });
 
   } catch (err: any) {
@@ -186,10 +178,8 @@ async function runReview(editor: vscode.TextEditor) {
     } else if (err.code === 'ECONNABORTED') {
       msg = 'BugLens: Request timed out. The server took too long to respond.';
     } else if (status === 422) {
-    const detailMsg = typeof detail === 'string' 
-      ? detail 
-      : JSON.stringify(detail);
-    msg = 'BugLens: Invalid request — ' + (detailMsg ?? 'check your code and language.');
+      const detailMsg = typeof detail === 'string' ? detail : JSON.stringify(detail);
+      msg = 'BugLens: Invalid request — ' + (detailMsg ?? 'check your code and language.');
     } else if (status === 400) {
       msg = 'BugLens: ' + (detail ?? 'Bad request.');
     } else if (status === 429) {
@@ -209,17 +199,15 @@ async function runReview(editor: vscode.TextEditor) {
 export function activate(context: vscode.ExtensionContext) {
   createDecorations();
 
-  // Status bar item
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right, 100
   );
   statusBarItem.command = 'buglens.reviewCode';
-  statusBarItem.text = '$(bug) BugLens';
+  statusBarItem.text    = '$(bug) BugLens';
   statusBarItem.tooltip = 'Click to run BugLens code review';
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
-  // Main command
   const reviewCmd = vscode.commands.registerCommand(
     'buglens.reviewCode',
     async () => {
@@ -233,7 +221,6 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(reviewCmd);
 
-  // Auto-review on save (optional)
   const saveWatcher = vscode.workspace.onDidSaveTextDocument(async doc => {
     const enabled = vscode.workspace
       .getConfiguration('buglens')
@@ -244,7 +231,6 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(saveWatcher);
 
-  // Clear decorations when switching files
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(editor => {
       if (editor) { clearDecorations(editor); }
@@ -322,18 +308,25 @@ function getScoreLabel(score: number): string {
   return 'Critical';
 }
 
-function getReviewHtml(review: any, filename: string): string {
+// ─── Main HTML — now accepts code + language for chat ────────────────────────
+function getReviewHtml(
+  review:   any,
+  filename: string,
+  code:     string = '',
+  language: string = ''
+): string {
   const scoreColor = getScoreColor(review.score);
   const scoreLabel = getScoreLabel(review.score);
+  const apiUrl     = getApiUrl();
 
   const sevColor: Record<string, string> = {
-    critical: '#ef4444',
-    warning: '#f59e0b',
+    critical:   '#ef4444',
+    warning:    '#f59e0b',
     suggestion: '#818cf8',
   };
   const sevIcon: Record<string, string> = {
-    critical: '🔴',
-    warning: '🟡',
+    critical:   '🔴',
+    warning:    '🟡',
     suggestion: '🔵',
   };
 
@@ -369,8 +362,7 @@ function getReviewHtml(review: any, filename: string): string {
     ? `<div class="section">
         <div class="section-title">✨ What's Good</div>
         <ul class="positives">
-          ${(review.positive_aspects as string[])
-            .map(p => `<li>${p}</li>`).join('')}
+          ${(review.positive_aspects as string[]).map(p => `<li>${p}</li>`).join('')}
         </ul>
        </div>` : '';
 
@@ -388,7 +380,7 @@ function getReviewHtml(review: any, filename: string): string {
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+        content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src ${apiUrl};">
   <style>
     * { box-sizing:border-box; margin:0; padding:0; }
     body {
@@ -451,7 +443,7 @@ function getReviewHtml(review: any, filename: string): string {
       margin-bottom:5px; display:inline-flex; align-items:center; gap:4px;
     }
     .line-tag:hover { text-decoration:underline; }
-    .jump-hint { font-size:9px; color:#4b5563; }
+    .jump-hint  { font-size:9px; color:#4b5563; }
     .issue-desc { font-size:12px; color:#94a3b8; margin-bottom:8px; line-height:1.55; }
     .fix-row { display:flex; gap:8px; align-items:flex-start; }
     .fix-box {
@@ -493,6 +485,38 @@ function getReviewHtml(review: any, filename: string): string {
       pointer-events:none;
     }
     #toast.show { opacity:1; }
+
+    /* ── Chat ── */
+    .chat-section {
+      margin-top:24px; border-top:1px solid #1e1e2e; padding-top:16px;
+    }
+    .chat-messages {
+      min-height:60px; max-height:300px; overflow-y:auto;
+      margin-bottom:10px; display:flex; flex-direction:column; gap:8px;
+    }
+    .chat-hint { font-size:11px; color:#4b5563; font-style:italic; padding:4px 0; }
+    .chat-msg  { padding:8px 12px; border-radius:8px; font-size:12px; line-height:1.6; }
+    .chat-msg.user    {
+      background:#1e1e2e; color:#cdd6f4; align-self:flex-end;
+      max-width:85%; border:1px solid #313244;
+    }
+    .chat-msg.bot     {
+      background:#13131f; color:#cdd6f4; align-self:flex-start;
+      max-width:95%; border:1px solid #1e1e2e;
+    }
+    .chat-msg.bot.loading { color:#6b7280; }
+    .chat-input-row { display:flex; gap:8px; }
+    .chat-input {
+      flex:1; background:#13131f; border:1px solid #313244;
+      border-radius:8px; padding:8px 12px; font-size:12px;
+      color:#cdd6f4; outline:none; font-family:'Segoe UI',sans-serif;
+    }
+    .chat-input:focus { border-color:#6366f1; }
+    .chat-send {
+      background:#6366f1; color:#fff; border:none; border-radius:8px;
+      padding:8px 16px; font-size:12px; cursor:pointer;
+    }
+    .chat-send:hover { background:#4f46e5; }
   </style>
 </head>
 <body>
@@ -542,10 +566,37 @@ function getReviewHtml(review: any, filename: string): string {
   ${positivesHtml}
   ${refactoredHtml}
 
+  <!-- ── Chat section ── -->
+  <div class="chat-section">
+    <div class="section-title">💬 Ask BugLens about this code</div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-hint">
+        Try: "Explain the SQL injection" · "How do I fix line 3?" · "What's the impact of this bug?"
+      </div>
+    </div>
+
+    <div class="chat-input-row">
+      <input
+        type="text"
+        id="chatInput"
+        class="chat-input"
+        placeholder="Ask anything about this code..."
+        onkeydown="if(event.key==='Enter') sendChat()"
+      />
+      <button class="chat-send" onclick="sendChat()">Ask →</button>
+    </div>
+  </div>
+
   <div id="toast">✅ Copied to clipboard!</div>
 
   <script>
-    const vscode = acquireVsCodeApi();
+    const vscode      = acquireVsCodeApi();
+    const API_URL     = '${apiUrl}';
+    const CODE        = ${JSON.stringify(code)};
+    const LANG        = '${language}';
+    const SUMMARY     = ${JSON.stringify(review.summary ?? '')};
+    let   chatHistory = [];
 
     function copyFix(id) {
       const text = document.getElementById(id)?.innerText ?? '';
@@ -557,6 +608,63 @@ function getReviewHtml(review: any, filename: string): string {
 
     function jumpToLine(line) {
       vscode.postMessage({ command: 'jumpToLine', line });
+    }
+
+    async function sendChat() {
+      const input    = document.getElementById('chatInput');
+      const messages = document.getElementById('chatMessages');
+      const question = input.value.trim();
+      if (!question) { return; }
+
+      input.value = '';
+      appendMessage('user', question);
+
+      const loadingId = 'loading-' + Date.now();
+      appendMessage('bot loading', '🤔 Thinking...', loadingId);
+
+      chatHistory.push({ role: 'user', content: question });
+
+      try {
+        const resp = await fetch(API_URL + '/api/v1/chat', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code:           CODE,
+            language:       LANG,
+            filename:       '${filename}',
+            review_summary: SUMMARY,
+            messages:       chatHistory
+          })
+        });
+
+        const data  = await resp.json();
+        const reply = data.reply || 'Sorry, no response.';
+
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) {
+          loadingEl.className  = 'chat-msg bot';
+          loadingEl.textContent = reply;
+        }
+
+        chatHistory.push({ role: 'assistant', content: reply });
+
+      } catch (e) {
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) {
+          loadingEl.className   = 'chat-msg bot';
+          loadingEl.textContent = 'Error reaching backend. Is the server running?';
+        }
+      }
+    }
+
+    function appendMessage(type, text, id) {
+      const messages = document.getElementById('chatMessages');
+      const div      = document.createElement('div');
+      div.className  = 'chat-msg ' + type;
+      div.textContent = text;
+      if (id) { div.id = id; }
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
     }
   </script>
 </body>
