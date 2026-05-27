@@ -35,12 +35,12 @@ def verify_signature(payload: bytes, signature: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 async def process_pr(owner: str, repo: str, pr_number: int):
-    print(f"🔍 Starting review for PR #{pr_number} — {owner}/{repo}")  # ← add
+    print(f"🔍 Starting review for PR #{pr_number} — {owner}/{repo}")
     try:
         files = await get_pr_files(owner, repo, pr_number)
-        print(f"📁 Files count: {len(files)}")  # ← add
+        print(f"📁 Files count: {len(files)}")
         for f in files:
-            print(f"  → {f.get('filename')} patch_exists:{bool(f.get('patch'))}")  # ← add
+            print(f"  → {f.get('filename')} patch_exists:{bool(f.get('patch'))}")
     except Exception as e:
         print(f"Failed to fetch PR files: {e}")
         return
@@ -49,14 +49,15 @@ async def process_pr(owner: str, repo: str, pr_number: int):
         filename = file.get("filename", "")
         ext = "." + filename.rsplit(".", 1)[-1] if "." in filename else ""
 
+        # Skip files with no extension (like .gitignore, Dockerfile, Makefile)
         if ext not in REVIEWABLE_EXTENSIONS:
+            print(f"⏭️ Skipping {filename} — not a reviewable file type")
             continue
 
         patch = file.get("patch", "")
         if not patch or len(patch) < 20:
             continue
 
-        # ← Fixed: convert extension to full language name
         lang = EXT_TO_LANG.get(ext.lstrip("."), "python")
 
         try:
@@ -69,8 +70,9 @@ async def process_pr(owner: str, repo: str, pr_number: int):
             review = await review_code(request)
             comment = format_review_as_markdown(filename, review)
             await post_review_comment(owner, repo, pr_number, comment)
+            print(f"✅ Review posted for {filename}")
         except Exception as e:
-            print(f"Review failed for {filename}: {e}")
+            print(f"❌ Review failed for {filename}: {e}")
             continue
 
 @router.post("/webhook")
