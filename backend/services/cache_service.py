@@ -2,7 +2,7 @@ import redis.asyncio as redis
 import json
 import os
 
-CACHE_VERSION = "v2"   # bump this number whenever you change ReviewResponse schema
+CACHE_VERSION = "v3"   # bump this number whenever you change ReviewResponse schema
 
 pool = redis.ConnectionPool.from_url(
     os.getenv("REDIS_URL", "redis://localhost:6379"),
