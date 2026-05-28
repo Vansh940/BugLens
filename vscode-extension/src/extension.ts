@@ -123,7 +123,6 @@ async function runReview(editor: vscode.TextEditor) {
   const ext      = filename.split('.').pop()?.toLowerCase() || '';
   const language = EXT_TO_LANG[ext] || ext || 'plaintext';
 
-  // Open or reuse panel — show loading immediately
   if (currentPanel) {
     currentPanel.reveal(vscode.ViewColumn.Beside);
   } else {
@@ -150,7 +149,6 @@ async function runReview(editor: vscode.TextEditor) {
     applyDecorations(editor, data.issues ?? []);
     updateStatusBar(data.score, data.issues?.length ?? 0);
 
-    // ← pass code and language for chat
     currentPanel.webview.html = getReviewHtml(data, filename, code, language);
 
     currentPanel.webview.onDidReceiveMessage(msg => {
@@ -165,7 +163,6 @@ async function runReview(editor: vscode.TextEditor) {
           range, vscode.TextEditorRevealType.InCenter
         );
       }
-      // chat is handled directly in the webview via fetch — no handler needed here
     });
 
   } catch (err: any) {
@@ -308,7 +305,17 @@ function getScoreLabel(score: number): string {
   return 'Critical';
 }
 
-// ─── Main HTML — now accepts code + language for chat ────────────────────────
+// ─── Safe HTML escaping for data attributes ───────────────────────────────────
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g,  '&amp;')
+    .replace(/"/g,  '&quot;')
+    .replace(/'/g,  '&#39;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;');
+}
+
+// ─── Main HTML ────────────────────────────────────────────────────────────────
 function getReviewHtml(
   review:   any,
   filename: string,
@@ -485,7 +492,6 @@ function getReviewHtml(
       pointer-events:none;
     }
     #toast.show { opacity:1; }
-
     /* ── Chat ── */
     .chat-section {
       margin-top:24px; border-top:1px solid #1e1e2e; padding-top:16px;
@@ -496,11 +502,11 @@ function getReviewHtml(
     }
     .chat-hint { font-size:11px; color:#4b5563; font-style:italic; padding:4px 0; }
     .chat-msg  { padding:8px 12px; border-radius:8px; font-size:12px; line-height:1.6; }
-    .chat-msg.user    {
+    .chat-msg.user {
       background:#1e1e2e; color:#cdd6f4; align-self:flex-end;
       max-width:85%; border:1px solid #313244;
     }
-    .chat-msg.bot     {
+    .chat-msg.bot {
       background:#13131f; color:#cdd6f4; align-self:flex-start;
       max-width:95%; border:1px solid #1e1e2e;
     }
@@ -569,13 +575,11 @@ function getReviewHtml(
   <!-- ── Chat section ── -->
   <div class="chat-section">
     <div class="section-title">💬 Ask BugLens about this code</div>
-
     <div class="chat-messages" id="chatMessages">
       <div class="chat-hint">
         Try: "Explain the SQL injection" · "How do I fix line 3?" · "What's the impact of this bug?"
       </div>
     </div>
-
     <div class="chat-input-row">
       <input
         type="text"
@@ -588,14 +592,25 @@ function getReviewHtml(
     </div>
   </div>
 
+  <!-- ── Safe data store — immune to </script> tags and special chars ── -->
+  <div id="__bugdata__"
+       data-code="${escapeHtml(code)}"
+       data-lang="${escapeHtml(language)}"
+       data-filename="${escapeHtml(filename)}"
+       data-summary="${escapeHtml(review.summary ?? '')}"
+       data-apiurl="${escapeHtml(apiUrl)}"
+       style="display:none"></div>
+
   <div id="toast">✅ Copied to clipboard!</div>
 
   <script>
-    const vscode      = acquireVsCodeApi();
-    const API_URL     = '${apiUrl}';
-    const CODE        = ${JSON.stringify(code)};
-    const LANG        = '${language}';
-    const SUMMARY     = ${JSON.stringify(review.summary ?? '')};
+    const vscode    = acquireVsCodeApi();
+    const __d       = document.getElementById('__bugdata__');
+    const CODE      = __d.getAttribute('data-code');
+    const LANG      = __d.getAttribute('data-lang');
+    const FILENAME  = __d.getAttribute('data-filename');
+    const SUMMARY   = __d.getAttribute('data-summary');
+    const API_URL   = __d.getAttribute('data-apiurl');
     let   chatHistory = [];
 
     function copyFix(id) {
@@ -612,7 +627,6 @@ function getReviewHtml(
 
     async function sendChat() {
       const input    = document.getElementById('chatInput');
-      const messages = document.getElementById('chatMessages');
       const question = input.value.trim();
       if (!question) { return; }
 
@@ -621,7 +635,6 @@ function getReviewHtml(
 
       const loadingId = 'loading-' + Date.now();
       appendMessage('bot loading', '🤔 Thinking...', loadingId);
-
       chatHistory.push({ role: 'user', content: question });
 
       try {
@@ -631,7 +644,7 @@ function getReviewHtml(
           body: JSON.stringify({
             code:           CODE,
             language:       LANG,
-            filename:       '${filename}',
+            filename:       FILENAME,
             review_summary: SUMMARY,
             messages:       chatHistory
           })
@@ -640,19 +653,16 @@ function getReviewHtml(
         const data  = await resp.json();
         const reply = data.reply || 'Sorry, no response.';
 
-        const loadingEl = document.getElementById(loadingId);
-        if (loadingEl) {
-          loadingEl.className  = 'chat-msg bot';
-          loadingEl.textContent = reply;
-        }
+        const el = document.getElementById(loadingId);
+        if (el) { el.className = 'chat-msg bot'; el.textContent = reply; }
 
         chatHistory.push({ role: 'assistant', content: reply });
 
       } catch (e) {
-        const loadingEl = document.getElementById(loadingId);
-        if (loadingEl) {
-          loadingEl.className   = 'chat-msg bot';
-          loadingEl.textContent = 'Error reaching backend. Is the server running?';
+        const el = document.getElementById(loadingId);
+        if (el) {
+          el.className   = 'chat-msg bot';
+          el.textContent = 'Error reaching backend. Is the server running?';
         }
       }
     }
