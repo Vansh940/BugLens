@@ -29,7 +29,7 @@ app.add_middleware(
 app.include_router(review.router)
 app.include_router(webhook.router)
 app.include_router(history.router)
-app.include_router(chat.router)   # ← add this line
+app.include_router(chat.router)
 
 @app.get("/health")
 @app.head("/health")
