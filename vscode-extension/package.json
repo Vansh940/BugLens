@@ -2,14 +2,23 @@
   "name": "buglens",
   "displayName": "BugLens",
   "description": "Instant AI-powered code review — catch bugs, security flaws, and bad practices before they ship.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "VanshDev",
   "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vansh940/BugLens"
+  },
+  "homepage": "https://github.com/Vansh940/BugLens",
+  "bugs": {
+    "url": "https://github.com/Vansh940/BugLens/issues"
+  },
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Linters", "Other"],
   "keywords": ["code review", "ai", "bug detection", "security", "linter"],
   "activationEvents": [],
   "main": "./out/extension.js",
+  "readme": "README.md",
   "contributes": {
     "commands": [
       {

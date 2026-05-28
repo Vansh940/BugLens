@@ -19,6 +19,7 @@ __pycache__/
 vscode-extension/node_modules/
 vscode-extension/out/
 vscode-extension/*.vsix
+vscode-extension/*.md
 
 # Logs
 *.log
@@ -47,4 +48,5 @@ ai_code_reviewer_guide_groq.md
 
 bad_code.py
 
-buglens-0.2.0.vsix
+README.md
+
