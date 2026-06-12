@@ -8,7 +8,7 @@ const EXT_TO_LANG: Record<string, string> = {
   css: 'css', scss: 'css', sass: 'css',
   c: 'c', cpp: 'cpp', rs: 'rust', go: 'go',
   java: 'java', kt: 'kotlin', scala: 'scala', groovy: 'groovy',
-  rb: 'ruby', php: 'php', pl: 'perl', lua: 'lua', sh: 'bash',
+  rb: 'ruby', php: 'php', pl: 'perl', lua: 'l ua', sh: 'bash',
   r: 'r', jl: 'julia', cs: 'csharp', fs: 'fsharp',
   swift: 'swift', dart: 'dart', ex: 'elixir', exs: 'elixir',
   hs: 'haskell', clj: 'clojure', sql: 'sql',

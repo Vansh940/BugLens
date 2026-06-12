@@ -2,7 +2,7 @@ import redis.asyncio as redis
 import json
 import os
 
-CACHE_VERSION = "v3"   # bump this number whenever you change ReviewResponse schema
+CACHE_VERSION = "v4"   # bump this number whenever you change ReviewResponse schema
 
 pool = redis.ConnectionPool.from_url(
     os.getenv("REDIS_URL", "redis://localhost:6379"),
@@ -21,7 +21,7 @@ async def get_cached_review(code_hash: str) -> dict | None:
         return None   # cache failure is never fatal
 
 async def cache_review(code_hash: str, review_data: dict,
-                        ttl_seconds: int = 86400) -> None:  
+                        ttl_seconds: int = 2592000) -> None:  
     try:
         r = redis.Redis(connection_pool=pool)
         await r.setex(make_key(code_hash), ttl_seconds, json.dumps(review_data))

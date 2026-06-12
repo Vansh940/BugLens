@@ -24,7 +24,7 @@ Use this exact schema:
   "score": <integer 0-100>,
   "issues": [
     {
-      "severity": "critical|warning|suggestion",
+      "severity": "critical|warning|suggestion",    
       "category": "bug|security|performance|style",
       "line_number": <integer or null>,
       "title": "Short issue title",
