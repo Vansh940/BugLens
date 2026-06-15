@@ -376,7 +376,7 @@ curl -X POST https://buglens-api.onrender.com/api/v1/review \
 
 | Layer | Technology |
 |---|---|
-| AI Model | Google Gemini 2.0 Flash |
+| AI Model | Llama 3.3 70B Versatile |
 | Backend | FastAPI + Python 3.12 |
 | Database | PostgreSQL 16 + SQLAlchemy async |
 | Cache | Redis (Upstash free tier) |
