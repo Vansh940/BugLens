@@ -418,6 +418,9 @@ A: Yes — VS Code Settings → search "buglens" → change `apiUrl` to your ser
 
 The BugLens GitHub bot will **automatically review your PR**. 🤖
 
+---
+
+
 <div align="center">
 
 Built with ❤️ by **[Vansh](https://github.com/Vansh940)**
