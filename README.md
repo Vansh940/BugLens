@@ -12,7 +12,6 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
 [![Redis](https://img.shields.io/badge/Redis-Upstash-DC382D?style=flat-square&logo=redis&logoColor=white)](https://upstash.com)
-[![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
 [![Live](https://img.shields.io/badge/API-Live%20on%20Render-46E3B7?style=flat-square)](https://buglens-api.onrender.com/docs)
 
 **Catch bugs · Fix security flaws · Improve code quality — before it ships**
