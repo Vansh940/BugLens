@@ -24,7 +24,6 @@ async def get_pr_files(owner: str, repo: str, pr_number: int) -> list:
 
 async def post_review_comment(owner: str, repo: str,
                                pr_number: int, body: str) -> None:
-    # Post as a regular issue comment (works without commit SHA)
     url = f"https://api.github.com/repos/{owner}/{repo}/issues/{pr_number}/comments"
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -34,7 +33,28 @@ async def post_review_comment(owner: str, repo: str,
         )
         print(f"Post comment status: {resp.status_code} — {resp.text[:200]}")
 
-def format_review_as_markdown(filename: str, review) -> str:
+async def get_diff_type(owner: str, repo: str, base_sha: str, head_sha: str) -> str:
+    """Compare base..head and return a label describing what kind of change this PR contains."""
+    url = f"https://api.github.com/repos/{owner}/{repo}/compare/{base_sha}...{head_sha}"
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, headers=HEADERS)
+    if resp.status_code != 200:
+        return ""
+    files = resp.json().get("files", [])
+    if not files:
+        return ""
+    statuses = {f["status"] for f in files}
+    if statuses == {"added"}:
+        return "🆕 **Completely new code** — no existing files were modified"
+    elif "added" not in statuses:
+        modified = len(files)
+        return f"✏️ **Modifications to existing code** — {modified} file(s) changed"
+    else:
+        added = sum(1 for f in files if f["status"] == "added")
+        modified = sum(1 for f in files if f["status"] in ("modified", "renamed"))
+        return f"🔀 **Mixed changes** — {added} new file(s) + {modified} modified file(s)"
+
+def format_review_as_markdown(filename: str, review, diff_label: str = "") -> str:
     emoji = {"critical": "🔴", "warning": "🟡", "suggestion": "🔵"}
     score_emoji = "✅" if review.score >= 80 else "⚠️" if review.score >= 60 else "❌"
 
@@ -43,6 +63,12 @@ def format_review_as_markdown(filename: str, review) -> str:
         f"**Score:** `{review.score}/100` &nbsp;|&nbsp; "
         f"**Issues:** `{len(review.issues)}` &nbsp;|&nbsp; "
         f"**Model:** `{review.model_used}`",
+    ]
+
+    if diff_label:
+        lines.append(f"\n{diff_label}")
+
+    lines += [
         "",
         f"> {review.summary}",
         "",

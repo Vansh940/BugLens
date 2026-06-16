@@ -2,7 +2,7 @@ import hmac
 import hashlib
 import os
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
-from services.github_service import get_pr_files, post_review_comment, format_review_as_markdown
+from services.github_service import get_pr_files, post_review_comment, format_review_as_markdown, get_diff_type
 from services.groq_service import review_code
 from models.schemas import ReviewRequest
 
@@ -34,7 +34,7 @@ def verify_signature(payload: bytes, signature: str) -> bool:
     ).hexdigest()
     return hmac.compare_digest(expected, signature)
 
-async def process_pr(owner: str, repo: str, pr_number: int):
+async def process_pr(owner: str, repo: str, pr_number: int, base_sha: str, head_sha: str):
     print(f"🔍 Starting review for PR #{pr_number} — {owner}/{repo}")
     try:
         files = await get_pr_files(owner, repo, pr_number)
@@ -45,11 +45,13 @@ async def process_pr(owner: str, repo: str, pr_number: int):
         print(f"Failed to fetch PR files: {e}")
         return
 
+    # Fetch diff type once for the whole PR
+    diff_label = await get_diff_type(owner, repo, base_sha, head_sha)
+
     for file in files:
         filename = file.get("filename", "")
         ext = "." + filename.rsplit(".", 1)[-1] if "." in filename else ""
 
-        # Skip files with no extension (like .gitignore, Dockerfile, Makefile)
         if ext not in REVIEWABLE_EXTENSIONS:
             print(f"⏭️ Skipping {filename} — not a reviewable file type")
             continue
@@ -68,7 +70,7 @@ async def process_pr(owner: str, repo: str, pr_number: int):
                 context=f"Git diff from pull request in {repo}"
             )
             review = await review_code(request)
-            comment = format_review_as_markdown(filename, review)
+            comment = format_review_as_markdown(filename, review, diff_label)
             await post_review_comment(owner, repo, pr_number, comment)
             print(f"✅ Review posted for {filename}")
         except Exception as e:
@@ -88,5 +90,7 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks):
         owner = payload["repository"]["owner"]["login"]
         repo = payload["repository"]["name"]
         pr_number = pr["number"]
-        background_tasks.add_task(process_pr, owner, repo, pr_number)
+        base_sha = pr["base"]["sha"]
+        head_sha = pr["head"]["sha"]
+        background_tasks.add_task(process_pr, owner, repo, pr_number, base_sha, head_sha)
     return {"status": "processing"}
