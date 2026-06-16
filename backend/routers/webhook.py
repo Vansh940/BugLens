@@ -45,9 +45,9 @@ async def process_pr(owner: str, repo: str, pr_number: int, base_sha: str, head_
         print(f"Failed to fetch PR files: {e}")
         return
 
-    # Fetch diff type once for the whole PR
     diff_label = await get_diff_type(owner, repo, base_sha, head_sha)
 
+    reviewed = False
     for file in files:
         filename = file.get("filename", "")
         ext = "." + filename.rsplit(".", 1)[-1] if "." in filename else ""
@@ -73,9 +73,16 @@ async def process_pr(owner: str, repo: str, pr_number: int, base_sha: str, head_
             comment = format_review_as_markdown(filename, review, diff_label)
             await post_review_comment(owner, repo, pr_number, comment)
             print(f"✅ Review posted for {filename}")
+            reviewed = True
         except Exception as e:
             print(f"❌ Review failed for {filename}: {e}")
             continue
+
+    if not reviewed:
+        await post_review_comment(
+            owner, repo, pr_number,
+            f"## ℹ️ BugLens Review\n\n{diff_label}\n\nNo reviewable code files found in this PR. BugLens supports: `.py`, `.js`, `.ts`, `.java`, `.go`, `.html`, `.css` and more."
+        )
 
 @router.post("/webhook")
 async def github_webhook(request: Request, background_tasks: BackgroundTasks):
@@ -83,7 +90,13 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks):
     sig = request.headers.get("X-Hub-Signature-256", "")
     if not verify_signature(body, sig):
         raise HTTPException(401, "Invalid webhook signature")
-    payload = await request.json()
+    
+    import json
+    try:
+        payload = json.loads(body)  # ← parse from already-read body bytes
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Invalid JSON payload")
+    
     event = request.headers.get("X-GitHub-Event")
     if event == "pull_request" and payload.get("action") in ("opened", "synchronize"):
         pr = payload["pull_request"]
