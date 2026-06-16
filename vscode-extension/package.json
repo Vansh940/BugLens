@@ -2,7 +2,7 @@
   "name": "buglens",
   "displayName": "BugLens",
   "description": "Instant AI-powered code review — catch bugs, security flaws, and bad practices before they ship.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "VanshDev",
   "icon": "icon.png",
   "repository": {

@@ -6,7 +6,7 @@
 
 ### AI-powered code review, right inside VS Code
 
-[![Version](https://img.shields.io/badge/version-0.5.0-6366f1?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens)
+[![Version](https://img.shields.io/badge/version-0.6.0-6366f1?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens)
 [![Marketplace](https://img.shields.io/visual-studio-marketplace/i/VanshDev.buglens?style=flat-square&label=installs&color=22c55e)](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
