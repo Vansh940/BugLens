@@ -9,8 +9,8 @@ router = APIRouter(prefix="/api/v1", tags=["review"])
 
 @router.post("/review", response_model=ReviewResponse)
 async def create_review(request: ReviewRequest):
-    if len(request.code) > 50_000:
-        raise HTTPException(400, "Code exceeds 50,000 character limit")
+    if len(request.code) > 150_000:
+        raise HTTPException(400, "Code exceeds 150,000 character limit")
     if len(request.code.strip()) < 10:
         raise HTTPException(400, "Code is too short to review")
 

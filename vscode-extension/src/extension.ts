@@ -114,6 +114,11 @@ async function runReview(editor: vscode.TextEditor) {
     ? editor.document.getText()
     : editor.document.getText(selection);
 
+  if (code.length > 150_000) {
+  vscode.window.showWarningMessage('BugLens: File too large (>150k chars). Select a specific function or class to review.');
+  return;
+  }
+
   if (code.trim().length < 10) {
     vscode.window.showWarningMessage('BugLens: Not enough code to review.');
     return;
@@ -143,7 +148,7 @@ async function runReview(editor: vscode.TextEditor) {
     const { data } = await axios.post(
       `${getApiUrl()}/api/v1/review`,
       { code, language, filename },
-      { timeout: 30000 }
+      { timeout: 60000  }
     );
 
     applyDecorations(editor, data.issues ?? []);
