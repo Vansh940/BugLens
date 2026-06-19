@@ -168,8 +168,8 @@ Python · JavaScript · TypeScript · Java · Go · Rust · C · C++ · C# · Ru
           │               │                │
           ▼               ▼                ▼
   ┌──────────────┐ ┌─────────────┐ ┌─────────────┐
-  │  Gemini AI   │ │  PostgreSQL │ │ GitHub API  │
-  │  2.0 Flash   │ │  (Render)   │ │ PR Comments │
+  │   Groq AI    │ │  PostgreSQL │ │ GitHub API  │
+  │Llama 3.3 70B │ │  (Render)   │ │ PR Comments │
   └──────────────┘ └─────────────┘ └─────────────┘
 ```
 
@@ -188,7 +188,7 @@ buglens/
 │   │   ├── webhook.py            # POST /api/v1/webhook (GitHub PR bot)
 │   │   └── history.py            # GET  /api/v1/history & stats
 │   ├── services/
-│   │   ├── groq_service.py       # AI model integration (Gemini 2.0 Flash)
+│   │   ├── groq_service.py       # AI model integration 
 │   │   ├── github_service.py     # GitHub API — fetch files, post comments
 │   │   └── cache_service.py      # Redis caching layer (Upstash)
 │   ├── models/
@@ -214,7 +214,6 @@ buglens/
 - PostgreSQL 16
 - Redis (or Upstash free tier)
 - Node.js 18+
-- Google Gemini API key — free at [aistudio.google.com](https://aistudio.google.com)
 
 ### 1. Clone & install
 
@@ -237,7 +236,7 @@ cp .env.example .env
 
 Edit `.env`:
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
+GROQ=your_groq_api_key_here
 GITHUB_TOKEN=your_github_personal_access_token
 GITHUB_WEBHOOK_SECRET=any_random_secret_string
 DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/buglens
@@ -366,7 +365,7 @@ curl -X POST https://buglens-api.onrender.com/api/v1/review \
     "fix": "if b == 0: raise ValueError('Divisor cannot be zero')\nreturn a / b"
   }],
   "positive_aspects": ["Concise and readable"],
-  "model_used": "gemini-2.0-flash"
+  "model_used": "Llama 3.3 70B"
 }
 ```
 
