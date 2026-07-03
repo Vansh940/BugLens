@@ -169,7 +169,7 @@ Python · JavaScript · TypeScript · Java · Go · Rust · C · C++ · C# · Ru
           ▼               ▼                ▼
   ┌──────────────┐ ┌─────────────┐ ┌─────────────┐
   │   Groq AI    │ │  PostgreSQL │ │ GitHub API  │
-  │Llama 3.3 70B │ │  (Render)   │ │ PR Comments │
+  │              │ │  (Render)   │ │ PR Comments │
   └──────────────┘ └─────────────┘ └─────────────┘
 ```
 
@@ -365,7 +365,7 @@ curl -X POST https://buglens-api.onrender.com/api/v1/review \
     "fix": "if b == 0: raise ValueError('Divisor cannot be zero')\nreturn a / b"
   }],
   "positive_aspects": ["Concise and readable"],
-  "model_used": "Llama 3.3 70B"
+  "model_used": "meta-llama/llama-4-scout-17b-16e-instruct"
 }
 ```
 
@@ -375,7 +375,7 @@ curl -X POST https://buglens-api.onrender.com/api/v1/review \
 
 | Layer | Technology |
 |---|---|
-| AI Model | Groq API — Llama 3.3 70B |
+| AI Model | Groq API — meta-llama/llama-4-scout-17b-16e-instruct |
 | Backend | FastAPI + Python 3.12 |
 | Database | PostgreSQL 16 + SQLAlchemy async |
 | Cache | Redis (Upstash free tier) |

@@ -8,7 +8,7 @@ from models.schemas import ReviewRequest, ReviewResponse
 from prompts.review_prompt import SYSTEM_PROMPT, build_user_prompt
 from services.cache_service import get_cached_review, cache_review
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 # ─── Key rotation setup ───────────────────────────────────────────────────────
 def _load_api_keys() -> list[str]:
