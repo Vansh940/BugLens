@@ -8,7 +8,7 @@ const EXT_TO_LANG: Record<string, string> = {
   css: 'css', scss: 'css', sass: 'css',
   c: 'c', cpp: 'cpp', rs: 'rust', go: 'go',
   java: 'java', kt: 'kotlin', scala: 'scala', groovy: 'groovy',
-  rb: 'ruby', php: 'php', pl: 'perl', lua: 'l ua', sh: 'bash',
+  rb: 'ruby', php: 'php', pl: 'perl', lua: 'lua', sh: 'bash',
   r: 'r', jl: 'julia', cs: 'csharp', fs: 'fsharp',
   swift: 'swift', dart: 'dart', ex: 'elixir', exs: 'elixir',
   hs: 'haskell', clj: 'clojure', sql: 'sql',
@@ -21,6 +21,11 @@ let warningDeco:    vscode.TextEditorDecorationType;
 let suggestionDeco: vscode.TextEditorDecorationType;
 let statusBarItem:  vscode.StatusBarItem;
 let currentPanel:   vscode.WebviewPanel | undefined;
+
+// ← NEW: remember which document/column was reviewed so "jump to line"
+//   can re-focus it even after the webview has stolen editor focus.
+let reviewedDocument:   vscode.TextDocument | undefined;
+let reviewedViewColumn: vscode.ViewColumn   | undefined;
 
 function getApiUrl(): string {
   return vscode.workspace
@@ -107,8 +112,49 @@ function updateStatusBar(score: number, issueCount: number) {
   statusBarItem.show();
 }
 
+// ─── Jump to line (FIXED) ──────────────────────────────────────────────────────
+// The old handler used `vscode.window.activeTextEditor`, which is `undefined`
+// the moment the webview panel has focus (a webview is not a text editor).
+// That's exactly the state you're in when you click a line tag, so the old
+// code silently did nothing. This version explicitly re-opens/focuses the
+// document that was actually reviewed, in its original view column, then
+// reveals + selects the target line.
+async function jumpToLine(lineNumber: number) {
+  if (!reviewedDocument) {
+    vscode.window.showWarningMessage('BugLens: No reviewed file to jump to.');
+    return;
+  }
+
+  let targetEditor: vscode.TextEditor;
+  try {
+    targetEditor = await vscode.window.showTextDocument(reviewedDocument, {
+      viewColumn: reviewedViewColumn ?? vscode.ViewColumn.One,
+      preserveFocus: false,
+      preview: false,
+    });
+  } catch {
+    vscode.window.showWarningMessage('BugLens: Could not reopen the reviewed file.');
+    return;
+  }
+
+  const lineIdx = Math.min(
+    Math.max(0, lineNumber - 1),
+    Math.max(0, targetEditor.document.lineCount - 1)
+  );
+  const lineText = targetEditor.document.lineAt(lineIdx).text;
+  const range = new vscode.Range(lineIdx, 0, lineIdx, lineText.length);
+
+  targetEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+  targetEditor.selection = new vscode.Selection(range.start, range.end);
+}
+
 // ─── Main review function ─────────────────────────────────────────────────────
 async function runReview(editor: vscode.TextEditor) {
+  // ← NEW: remember what we're reviewing, so jumpToLine can find it later
+  //   even after the webview steals focus.
+  reviewedDocument   = editor.document;
+  reviewedViewColumn = editor.viewColumn ?? vscode.ViewColumn.One;
+
   const selection = editor.selection;
   const code = selection.isEmpty
     ? editor.document.getText()
@@ -138,6 +184,17 @@ async function runReview(editor: vscode.TextEditor) {
       { enableScripts: true }
     );
     currentPanel.onDidDispose(() => { currentPanel = undefined; });
+
+    // ← Register message handler ONCE when panel is first created
+    currentPanel.webview.onDidReceiveMessage(async msg => {
+      if (msg.command === 'copyFix') {
+        vscode.env.clipboard.writeText(msg.text);
+        vscode.window.showInformationMessage('BugLens: Fix copied to clipboard!');
+      }
+      if (msg.command === 'jumpToLine') {
+        await jumpToLine(msg.line);
+      }
+    });
   }
   currentPanel.title        = `BugLens — ${filename}`;
   currentPanel.webview.html = getLoadingHtml(filename);
@@ -155,20 +212,6 @@ async function runReview(editor: vscode.TextEditor) {
     updateStatusBar(data.score, data.issues?.length ?? 0);
 
     currentPanel.webview.html = getReviewHtml(data, filename, code, language);
-
-    currentPanel.webview.onDidReceiveMessage(msg => {
-      if (msg.command === 'copyFix') {
-        vscode.env.clipboard.writeText(msg.text);
-        vscode.window.showInformationMessage('BugLens: Fix copied to clipboard!');
-      }
-      if (msg.command === 'jumpToLine') {
-        const line  = msg.line - 1;
-        const range = new vscode.Range(line, 0, line, 0);
-        vscode.window.activeTextEditor?.revealRange(
-          range, vscode.TextEditorRevealType.InCenter
-        );
-      }
-    });
 
   } catch (err: any) {
     const status = err.response?.status;
