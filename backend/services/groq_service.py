@@ -8,7 +8,7 @@ from models.schemas import ReviewRequest, ReviewResponse
 from prompts.review_prompt import SYSTEM_PROMPT, build_user_prompt
 from services.cache_service import get_cached_review, cache_review
 
-GROQ_MODEL = "qwen/qwen3.6-27b"
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 # ─── Key rotation setup ───────────────────────────────────────────────────────
 def _load_api_keys() -> list[str]:
