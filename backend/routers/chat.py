@@ -6,7 +6,7 @@ from groq import AsyncGroq, RateLimitError
 from services.groq_service import API_KEYS   # ← reuse same keys, no duplication
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
-GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+GROQ_MODEL = "llama-4-scout"
 
 # ─── Same rotation logic as groq_service.py ──────────────────────────────────
 _chat_key_index = 0
