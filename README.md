@@ -244,19 +244,6 @@ curl -X POST https://buglens-api.onrender.com/api/v1/review \
 ```
 
 ---
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| AI Model | Groq API — meta-llama/llama-4-scout-17b-16e-instruct |
-| Backend | FastAPI + Python 3.12 |
-| Database | PostgreSQL 16 + SQLAlchemy async |
-| Cache | Redis (Upstash free tier) |
-| GitHub Integration | Webhooks + GitHub REST API |
-| VS Code Extension | TypeScript + VS Code API |
-| Deployment | Render (free tier) |
-
 ---
 
 ## ❓ FAQ
