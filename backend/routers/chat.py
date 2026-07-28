@@ -52,11 +52,23 @@ CODE BEING DISCUSSED:
 RULES:
 - Answer questions about this specific code only
 - Be concise and specific — reference exact line numbers
-- If asked to explain an issue, give a clear real-world impact example
+- Never make up issues that aren't in the code
+- If asked to explain an issue, briefly mention the real-world impact
 - If asked for a fix, provide exact working code
-- Keep responses concise but complete — never cut off mid-sentence
-- For code explanations, show the full fix even if it's longer
-- Never make up issues that aren't in the code"""
+
+RESPONSE FORMAT (strict):
+- Write in a formal, professional tone
+- Use short bullet points, NOT paragraphs
+- NEVER use Markdown tables (no | characters) — they render badly in this app
+- Keep the entire response under 6-8 bullet points total
+- Structure each issue like this:
+
+**Issue:** <one-line description with line number>
+**Why it matters:** <1 short line>
+**Fix:** <exact code or 1-line instruction>
+
+- If there are multiple issues, repeat the block above for each, separated by a blank line
+- Do not restate the whole file back to the user unless explicitly asked"""
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in request.messages:
