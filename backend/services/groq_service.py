@@ -84,19 +84,6 @@ async def call_groq_with_retry(messages: list, retries: int = 3) -> str:
                     response_format={"type": "json_object"}
                 )
                 return completion.choices[0].message.content
-            
-            except Exception as e:
-                error_str = str(e)
-                # 413 = request too large — truncate and retry with smaller input
-                if '413' in error_str or 'Request too large' in error_str:
-                    print(f"[BugLens] Request too large — reduce MAX_CODE_CHARS in review_prompt.py")
-                    raise Exception("Code is too large to review. Please select a specific function or section.")
-                if attempt < retries - 1:
-                    wait = 2 ** attempt
-                    print(f"[BugLens] Request failed (attempt {attempt + 1}): {e}. Retrying in {wait}s...")
-                    await asyncio.sleep(wait)
-                else:
-                    raise
 
             except RateLimitError:
                 rotated = _rotate_key()
@@ -107,6 +94,11 @@ async def call_groq_with_retry(messages: list, retries: int = 3) -> str:
                     raise Exception("All API keys have hit their rate limits. Please wait before retrying.")
 
             except Exception as e:
+                error_str = str(e)
+                # 413 = request too large — truncate and retry with smaller input
+                if '413' in error_str or 'Request too large' in error_str:
+                    print(f"[BugLens] Request too large — reduce MAX_CODE_CHARS in review_prompt.py")
+                    raise Exception("Code is too large to review. Please select a specific function or section.")
                 if attempt < retries - 1:
                     wait = 2 ** attempt
                     print(f"[BugLens] Request failed (attempt {attempt + 1}): {e}. Retrying in {wait}s...")

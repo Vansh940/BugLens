@@ -725,12 +725,12 @@ const positivesHtml = review.positive_aspects?.length
         }
 
         function formatChatReply(text) {
-          var safe = escapeHtml(text);
-          safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-          safe = safe.replace(/\n\n+/g, "</p><p>");
-          safe = safe.replace(/\n/g, "<br>");
-          return "<p>" + safe + "</p>";
-        }
+  var safe = escapeHtml(text);
+  safe = safe.replace(/\\*\\*(.+?)\\*\\*/g, "<strong>$1</strong>");
+  safe = safe.replace(/\\n\\n+/g, "</p><p>");
+  safe = safe.replace(/\\n/g, "<br>");
+  return "<p>" + safe + "</p>";
+}
   
     function appendMessage(type, text, id) {
   const messages = document.getElementById('chatMessages');
