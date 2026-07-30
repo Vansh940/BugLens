@@ -106,8 +106,6 @@ async def call_groq_with_retry(messages: list, retries: int = 3) -> str:
                 else:
                     raise
 
-        keys_tried += 1
-
     raise Exception("All API keys exhausted.")
 
 # ─── Main review function (completely unchanged) ──────────────────────────────
