@@ -355,7 +355,7 @@ function getScoreLabel(score: number): string {
 
 // ─── Safe HTML escaping for data attributes ───────────────────────────────────
 function escapeHtml(str: string): string {
-  return str
+  return (str ?? '')
     .replace(/&/g,  '&amp;')
     .replace(/"/g,  '&quot;')
     .replace(/'/g,  '&#39;')
@@ -391,35 +391,35 @@ function getReviewHtml(
   const suggestion = issues.filter(i => i.severity === 'suggestion').length;
 
   const issuesHtml = issues.length
-    ? issues.map((issue, idx) => `
-      <div class="issue-card" style="border-left-color:${sevColor[issue.severity] ?? '#555'}">
-        <div class="issue-header">
-          <span>${sevIcon[issue.severity] ?? '⚪'}</span>
-          <span class="sev-badge" style="color:${sevColor[issue.severity]};border-color:${sevColor[issue.severity]}44">
-            ${issue.severity.toUpperCase()}
-          </span>
-          <span class="issue-title">${issue.title}</span>
-        </div>
-        ${issue.line_number ? `
-          <div class="line-tag" onclick="jumpToLine(${issue.line_number})">
-            📍 Line ${issue.line_number}
-            <span class="jump-hint">click to jump</span>
-          </div>` : ''}
-        <div class="issue-desc">${issue.description}</div>
-        <div class="fix-row">
-          <div class="fix-box" id="fix-${idx}">${issue.fix}</div>
-          <button class="copy-btn" onclick="copyFix('fix-${idx}')">Copy Fix</button>
-        </div>
-      </div>`).join('')
-    : `<div class="no-issues">✅ No issues found — great code!</div>`;
+  ? issues.map((issue, idx) => `
+    <div class="issue-card" style="border-left-color:${sevColor[issue.severity] ?? '#555'}">
+      <div class="issue-header">
+        <span>${sevIcon[issue.severity] ?? '⚪'}</span>
+        <span class="sev-badge" style="color:${sevColor[issue.severity]};border-color:${sevColor[issue.severity]}44">
+          ${issue.severity.toUpperCase()}
+        </span>
+        <span class="issue-title">${escapeHtml(issue.title)}</span>
+      </div>
+      ${issue.line_number ? `
+        <div class="line-tag" onclick="jumpToLine(${issue.line_number})">
+          📍 Line ${issue.line_number}
+          <span class="jump-hint">click to jump</span>
+        </div>` : ''}
+      <div class="issue-desc">${escapeHtml(issue.description)}</div>
+      <div class="fix-row">
+        <div class="fix-box" id="fix-${idx}">${escapeHtml(issue.fix)}</div>
+        <button class="copy-btn" onclick="copyFix('fix-${idx}')">Copy Fix</button>
+      </div>
+    </div>`).join('')
+  : `<div class="no-issues">✅ No issues found — great code!</div>`;
 
-  const positivesHtml = review.positive_aspects?.length
-    ? `<div class="section">
-        <div class="section-title">✨ What's Good</div>
-        <ul class="positives">
-          ${(review.positive_aspects as string[]).map(p => `<li>${p}</li>`).join('')}
-        </ul>
-       </div>` : '';
+const positivesHtml = review.positive_aspects?.length
+  ? `<div class="section">  
+      <div class="section-title">✨ What's Good</div>
+      <ul class="positives">
+        ${(review.positive_aspects as string[]).map(p => `<li>${escapeHtml(p)}</li>`).join('')}
+      </ul>
+     </div>` : '';
 
   const refactoredHtml = review.refactored_code
     ? `<div class="section">
@@ -559,6 +559,8 @@ function getReviewHtml(
       max-width:95%; border:1px solid #1e1e2e;
     }
     .chat-msg.bot.loading { color:#6b7280; }
+.chat-msg p { margin-bottom: 6px; }
+.chat-msg p:last-child { margin-bottom: 0; }
     .chat-input-row { display:flex; gap:8px; }
     .chat-input {
       flex:1; background:#13131f; border:1px solid #313244;
@@ -590,7 +592,7 @@ function getReviewHtml(
       <div class="score-lbl">${scoreLabel}</div>
     </div>
     <div class="divider"></div>
-    <div class="summary">${review.summary}</div>
+    <div class="summary">${escapeHtml(review.summary)}</div>
   </div>
 
   <div class="stats">
@@ -702,7 +704,7 @@ function getReviewHtml(
         const reply = data.reply || 'Sorry, no response.';
 
         const el = document.getElementById(loadingId);
-        if (el) { el.className = 'chat-msg bot'; el.textContent = reply; }
+        if (el) { el.className = 'chat-msg bot'; el.innerHTML = formatChatReply(reply); }
 
         chatHistory.push({ role: 'assistant', content: reply });
 
@@ -715,15 +717,34 @@ function getReviewHtml(
       }
     }
 
+            function escapeHtml(str) {
+          return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        }
+
+        function formatChatReply(text) {
+          var safe = escapeHtml(text);
+          safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+          safe = safe.replace(/\n\n+/g, "</p><p>");
+          safe = safe.replace(/\n/g, "<br>");
+          return "<p>" + safe + "</p>";
+        }
+  
     function appendMessage(type, text, id) {
-      const messages = document.getElementById('chatMessages');
-      const div      = document.createElement('div');
-      div.className  = 'chat-msg ' + type;
-      div.textContent = text;
-      if (id) { div.id = id; }
-      messages.appendChild(div);
-      messages.scrollTop = messages.scrollHeight;
-    }
+  const messages = document.getElementById('chatMessages');
+  const div      = document.createElement('div');
+  div.className  = 'chat-msg ' + type;
+  if (type.startsWith('bot')) {
+    div.innerHTML = formatChatReply(text);
+  } else {
+    div.textContent = text;
+  }
+  if (id) { div.id = id; }
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
   </script>
 </body>
 </html>`;
