@@ -13,7 +13,7 @@ def make_key(code_hash: str) -> str:
     return f"{CACHE_VERSION}:review:{code_hash}"   # key includes version
 
 async def get_cached_review(code_hash: str) -> dict | None:
-    try:
+    try:Pr
         r = redis.Redis(connection_pool=pool)
         data = await r.get(make_key(code_hash))
         return json.loads(data) if data else None
