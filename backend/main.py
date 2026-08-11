@@ -4,7 +4,8 @@ load_dotenv()  # must be first line before any other imports
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import review, webhook, history, chat
+from routers import review, webhook, history, chat, analytics
+from middleware.ip_tracking import IPTrackingMiddleware
 from models.database import init_db
 
 @asynccontextmanager
@@ -26,10 +27,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(IPTrackingMiddleware)
+
 app.include_router(review.router)
 app.include_router(webhook.router)
 app.include_router(history.router)
 app.include_router(chat.router)
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 
 @app.get("/health")
 @app.head("/health")
