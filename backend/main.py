@@ -5,7 +5,8 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from pathlib import Path
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -54,6 +55,12 @@ app.include_router(webhook.router)
 app.include_router(history.router)
 app.include_router(chat.router)
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+
+DASHBOARD_PATH = Path(__file__).resolve().parent.parent / "BugAnalytics.html"
+
+@app.get("/dashboard")
+def serve_dashboard():
+    return FileResponse(DASHBOARD_PATH)
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):

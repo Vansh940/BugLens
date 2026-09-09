@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Baked into the published bundle — not a secret from a determined
 // attacker who decompiles the extension, but stops casual scripted abuse.
-const EXTENSION_KEY = 'REPLACE_WITH_THE_SAME_VALUE_AS_EXTENSION_SHARED_SECRET_ENV_VAR';
+const EXTENSION_KEY = '';
 
 // ─── Language map (30+ languages) ───────────────────────────────────────────
 const EXT_TO_LANG: Record<string, string> = {

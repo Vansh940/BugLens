@@ -9,7 +9,7 @@ from sqlalchemy.sql import func
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:12345678@localhost:5432/code_reviewer")
 ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
-engine = create_async_engine(ASYNC_DATABASE_URL, echo=False)
+engine = create_async_engine(ASYNC_DATABASE_URL, echo=False, pool_pre_ping=True)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
