@@ -198,6 +198,19 @@ async function runReview(editor: vscode.TextEditor) {
       if (msg.command === 'jumpToLine') {
         await jumpToLine(msg.line);
       }
+      if (msg.command === 'chat') {
+        try {
+          const { data } = await axios.post(
+            `${getApiUrl()}/api/v1/chat`,
+            msg.payload,
+            { headers: { 'X-Extension-Key': EXTENSION_KEY }, timeout: 60000 }
+          );
+          currentPanel?.webview.postMessage({ command: 'chatReply', reply: data.reply });
+        } catch (err: any) {
+          const detail = err.response?.data?.detail ?? err.message ?? 'Unknown error';
+          currentPanel?.webview.postMessage({ command: 'chatError', error: detail });
+        }
+      }
     });
   }
   currentPanel.title        = `BugLens — ${filename}`;
@@ -691,34 +704,30 @@ const positivesHtml = review.positive_aspects?.length
       appendMessage('bot loading', '🤔 Thinking...', loadingId);
       chatHistory.push({ role: 'user', content: question });
 
-      try {
-        const resp = await fetch(API_URL + '/api/v1/chat', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Extension-Key': EXTENSION_KEY },
-          body: JSON.stringify({
-            code:           CODE,
-            language:       LANG,
-            filename:       FILENAME,
-            review_summary: SUMMARY,
-            messages:       chatHistory
-          })
-        });
-
-        const data  = await resp.json();
-        const reply = data.reply || 'Sorry, no response.';
-
-        const el = document.getElementById(loadingId);
-        if (el) { el.className = 'chat-msg bot'; el.innerHTML = formatChatReply(reply); }
-
-        chatHistory.push({ role: 'assistant', content: reply });
-
-      } catch (e) {
-        const el = document.getElementById(loadingId);
-        if (el) {
-          el.className   = 'chat-msg bot';
-          el.textContent = 'Error reaching backend. Is the server running?';
+      vscode.postMessage({
+        command: 'chat',
+        payload: {
+          code:           CODE,
+          language:       LANG,
+          filename:       FILENAME,
+          review_summary: SUMMARY,
+          messages:       chatHistory
         }
-      }
+      });
+
+      window.addEventListener('message', function handler(event) {
+        if (event.data.command === 'chatReply') {
+          window.removeEventListener('message', handler);
+          const el = document.getElementById(loadingId);
+          if (el) { el.className = 'chat-msg bot'; el.innerHTML = formatChatReply(event.data.reply); }
+          chatHistory.push({ role: 'assistant', content: event.data.reply });
+        }
+        if (event.data.command === 'chatError') {
+          window.removeEventListener('message', handler);
+          const el = document.getElementById(loadingId);
+          if (el) { el.className = 'chat-msg bot'; el.textContent = 'Error: ' + event.data.error; }
+        }
+      });
     }
 
             function escapeHtml(str) {
