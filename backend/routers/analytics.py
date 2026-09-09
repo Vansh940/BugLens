@@ -33,7 +33,8 @@ from datetime import datetime, timezone
 
 import httpx
 import redis.asyncio as redis
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from core.security import require_admin_key
 from pydantic import BaseModel
 
 from middleware.ip_tracking import (
@@ -85,7 +86,7 @@ class DownloadStats(BaseModel):
     note: str | None = None
 
 
-@router.get("/ips", response_model=IPStatsResponse)
+@router.get("/ips", response_model=IPStatsResponse, dependencies=[Depends(require_admin_key)])
 async def get_ip_stats(limit: int = 200):
     """
     Per-IP request counts, sorted by request count descending.

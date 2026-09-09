@@ -1,11 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from sqlalchemy import select, func
 from models.database import AsyncSessionLocal, Review
 
 router = APIRouter(prefix="/api/v1", tags=["history"])
 
 @router.get("/history")
-async def get_history(limit: int = 20):
+async def get_history(limit: int = Query(20, le=200)):
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(Review).order_by(Review.created_at.desc()).limit(limit)

@@ -1,9 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from typing import List, Optional
 import asyncio
 from groq import AsyncGroq, RateLimitError
-from services.groq_service import API_KEYS   # ← reuse same keys, no duplication
+from services.groq_service import API_KEYS
+from core.security import require_extension_key
+from core.budget import enforce_daily_budget
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
 GROQ_MODEL = "openai/gpt-oss-20b"
@@ -38,16 +40,18 @@ class ChatResponse(BaseModel):
     reply: str
 
 # ─── Endpoint ─────────────────────────────────────────────────────────────────
-@router.post("/chat", response_model=ChatResponse)
-async def chat_about_code(request: ChatRequest):
+@router.post("/chat", response_model=ChatResponse, dependencies=[Depends(require_extension_key)])
+async def chat_about_code(request_body: ChatRequest, request: Request):
+    await enforce_daily_budget(request, bucket="chat", max_per_day=300)
+
     system_prompt = f"""You are BugLens, an expert code reviewer assistant.
-The user is asking questions about this {request.language} code from {request.filename or 'their file'}.
+The user is asking questions about this {request_body.language} code from {request_body.filename or 'their file'}.
 
 CODE BEING DISCUSSED:
-```{request.language}
-{request.code[:4000]}
+```{request_body.language}
+{request_body.code[:4000]}
 ```
-{f'REVIEW SUMMARY: {request.review_summary}' if request.review_summary else ''}
+{f'REVIEW SUMMARY: {request_body.review_summary}' if request_body.review_summary else ''}
 
 RULES:
 - Answer questions about this specific code only
@@ -71,7 +75,7 @@ RESPONSE FORMAT (strict):
 - Do not restate the whole file back to the user unless explicitly asked"""
 
     messages = [{"role": "system", "content": system_prompt}]
-    for msg in request.messages:
+    for msg in request_body.messages:
         messages.append({"role": msg.role, "content": msg.content})
 
     # Try all available keys before giving up

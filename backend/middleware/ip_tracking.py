@@ -26,6 +26,7 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from services.cache_service import pool  # reuse the same connection pool
+from core.security import get_trusted_client_ip
 
 # Only track requests to these path prefixes. Keeps noise (health checks,
 # docs, static assets) out of the analytics data.
@@ -35,23 +36,6 @@ REDIS_KEY_COUNT = "buglens:ip:count"
 REDIS_KEY_FIRST_SEEN = "buglens:ip:first_seen"
 REDIS_KEY_LAST_SEEN = "buglens:ip:last_seen"
 REDIS_KEY_KNOWN = "buglens:ip:known"
-
-
-def _client_ip(request: Request) -> str:
-    """
-    Best-effort real client IP extraction.
-
-    Render (and most PaaS providers) sit behind a proxy, so the real client
-    IP arrives in X-Forwarded-For, not request.client.host. We take the
-    left-most entry, which is the original client.
-    """
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip()
-    return request.client.host if request.client else "unknown"
 
 
 class IPTrackingMiddleware(BaseHTTPMiddleware):
@@ -80,7 +64,7 @@ class IPTrackingMiddleware(BaseHTTPMiddleware):
         return response
 
     async def _record(self, request: Request) -> None:
-        ip = _client_ip(request)
+        ip = get_trusted_client_ip(request)
         now_iso = datetime.now(timezone.utc).isoformat()
 
         r = redis.Redis(connection_pool=pool)
