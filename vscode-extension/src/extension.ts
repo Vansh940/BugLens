@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 
+// Baked into the published bundle — not a secret from a determined
+// attacker who decompiles the extension, but stops casual scripted abuse.
+const EXTENSION_KEY = 'REPLACE_WITH_THE_SAME_VALUE_AS_EXTENSION_SHARED_SECRET_ENV_VAR';
+
 // ─── Language map (30+ languages) ───────────────────────────────────────────
 const EXT_TO_LANG: Record<string, string> = {
   py: 'python', js: 'javascript', ts: 'typescript',
@@ -205,7 +209,7 @@ async function runReview(editor: vscode.TextEditor) {
     const { data } = await axios.post(
       `${getApiUrl()}/api/v1/review`,
       { code, language, filename },
-      { timeout: 60000  }
+      { headers: { 'X-Extension-Key': EXTENSION_KEY }, timeout: 60000  }
     );
 
     applyDecorations(editor, data.issues ?? []);
@@ -690,7 +694,7 @@ const positivesHtml = review.positive_aspects?.length
       try {
         const resp = await fetch(API_URL + '/api/v1/chat', {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-Extension-Key': EXTENSION_KEY },
           body: JSON.stringify({
             code:           CODE,
             language:       LANG,
