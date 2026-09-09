@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BugLens · Analytics</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #151b23;
+    --panel-border: #262f3a;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #3ecf8e;
+    --accent-dim: #1f6e4d;
+    --warn: #f0b429;
+    --danger: #f85149;
+    --mono: 'SF Mono', 'Consolas', 'Menlo', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 32px;
+  }
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header h1 .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .header .meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .stat-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .stat-card .value {
+    font-size: 26px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+  .stat-card .sub {
+    font-size: 12px;
+    color: var(--accent);
+    margin-top: 4px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .download-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 900px) { .download-row { grid-template-columns: 1fr; } }
+  .download-item {
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .download-item .name { font-size: 13px; color: var(--text-dim); }
+  .download-item .count { font-size: 20px; font-family: var(--mono); font-weight: 600; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    font-weight: 500;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid #1c232c;
+    font-family: var(--mono);
+    font-size: 12.5px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #1a212b; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--sans);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .badge.active { background: rgba(62,207,142,0.12); color: var(--accent); }
+  .badge.inactive { background: rgba(139,148,158,0.12); color: var(--text-dim); }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .bar-track {
+    flex: 1;
+    height: 6px;
+    background: #1c232c;
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 60px;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+    border-radius: 4px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .empty-state .big { font-size: 28px; margin-bottom: 8px; }
+
+  .error-banner {
+    background: rgba(248,81,73,0.1);
+    border: 1px solid rgba(248,81,73,0.3);
+    color: var(--danger);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    margin-bottom: 18px;
+    font-family: var(--mono);
+    display: none;
+  }
+
+  .config-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .config-note code {
+    background: #1c232c;
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+  input.api-input {
+    background: #0d1117;
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 7px 10px;
+    border-radius: 5px;
+    width: 320px;
+    margin-right: 8px;
+  }
+  button.refresh-btn {
+    background: var(--accent-dim);
+    color: #eafff5;
+    border: none;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    padding: 7px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  button.refresh-btn:hover { background: var(--accent); color: #05140d; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="dot"></span> BugLens Analytics</h1>
+  <div class="meta" id="last-updated">not loaded yet</div>
+</div>
+
+<div class="panel" style="margin-bottom:22px;">
+  <div class="panel-title">Backend connection</div>
+  <div class="config-note">
+    Points at your FastAPI backend's <code>/api/v1/analytics</code> endpoints (see INTEGRATION.md).
+    Default is your production URL — change it if testing locally.
+  </div>
+  <div style="margin-top:10px;">
+    <input type="text" class="api-input" id="api-base" value="https://buglens-api.onrender.com">
+    <input type="text" class="api-input" id="admin-key" placeholder="Admin API Key">
+    <button class="refresh-btn" onclick="loadAll()">Refresh data</button>
+  </div>
+</div>
+
+<div class="error-banner" id="error-banner"></div>
+
+<div class="grid">
+  <div class="stat-card">
+    <div class="label">Total Downloads</div>
+    <div class="value" id="stat-total-downloads">—</div>
+    <div class="sub" id="stat-downloads-fetched">&nbsp;</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Unique IPs</div>
+    <div class="value" id="stat-unique-ips">—</div>
+    <div class="sub">&nbsp;</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Active (24h)</div>
+    <div class="value" id="stat-active-ips">—</div>
+    <div class="sub">&nbsp;</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total Requests Logged</div>
+    <div class="value" id="stat-total-requests">—</div>
+    <div class="sub">&nbsp;</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-title">Downloads by IDE</div>
+  <div class="panel-sub">Live from VS Code Marketplace + Open VSX (cached ~6h server-side)</div>
+  <div class="download-row">
+    <div class="download-item">
+      <div>
+        <div class="name">VS Code Marketplace</div>
+      </div>
+      <div class="count" id="dl-vscode">—</div>
+    </div>
+    <div class="download-item">
+      <div>
+        <div class="name">Open VSX (Cursor + Antigravity)</div>
+      </div>
+      <div class="count" id="dl-openvsx">—</div>
+    </div>
+    <div class="download-item">
+      <div>
+        <div class="name">Combined Total</div>
+      </div>
+      <div class="count" id="dl-total">—</div>
+    </div>
+  </div>
+  <div class="config-note" style="margin-top:12px;">
+    Open VSX serves both Cursor and Antigravity from one namespace, so those two can't be split further
+    unless each IDE's marketplace exposes separate install telemetry.
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-title">IP Activity</div>
+  <div class="panel-sub">Every IP that has hit <code>/api/v1/review</code>, ranked by request volume</div>
+  <div id="ip-table-container">
+    <div class="empty-state">
+      <div class="big">—</div>
+      Enter your backend URL above and click Refresh.
+    </div>
+  </div>
+</div>
+
+<script>
+let apiBase = document.getElementById('api-base').value.replace(/\/$/, '');
+
+function fmtNum(n) {
+  if (n === null || n === undefined) return '—';
+  return n.toLocaleString();
+}
+
+function fmtTime(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  } catch { return iso; }
+}
+
+function showError(msg) {
+  const banner = document.getElementById('error-banner');
+  banner.textContent = msg;
+  banner.style.display = 'block';
+}
+
+function hideError() {
+  document.getElementById('error-banner').style.display = 'none';
+}
+
+async function fetchJSON(path, headers = {}) {
+  const res = await fetch(apiBase + path, { headers });
+  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  return res.json();
+}
+
+async function loadDownloads() {
+  const data = await fetchJSON('/api/v1/analytics/downloads');
+  document.getElementById('dl-vscode').textContent = fmtNum(data.vscode_marketplace);
+  document.getElementById('dl-openvsx').textContent = fmtNum(data.open_vsx);
+  document.getElementById('dl-total').textContent = fmtNum(data.total);
+  document.getElementById('stat-total-downloads').textContent = fmtNum(data.total);
+  document.getElementById('stat-downloads-fetched').textContent =
+    'as of ' + fmtTime(data.fetched_at);
+  if (data.note) showError(data.note);
+}
+
+async function loadIPs() {
+  const adminKey = document.getElementById('admin-key').value;
+  const data = await fetchJSON('/api/v1/analytics/ips?limit=200', {
+    'X-Admin-Key': adminKey
+  });
+  document.getElementById('stat-unique-ips').textContent = fmtNum(data.total_unique_ips);
+  document.getElementById('stat-active-ips').textContent = fmtNum(data.active_ips);
+
+  const totalRequests = data.ips.reduce((sum, r) => sum + r.request_count, 0);
+  document.getElementById('stat-total-requests').textContent = fmtNum(totalRequests);
+
+  const container = document.getElementById('ip-table-container');
+
+  if (!data.ips.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="big">No requests logged yet</div>
+        Once the middleware is deployed, IPs will appear here as the extension is used.
+      </div>`;
+    return;
+  }
+
+  const maxCount = Math.max(...data.ips.map(r => r.request_count));
+
+  const rows = data.ips.map(r => {
+    const pct = maxCount > 0 ? Math.round((r.request_count / maxCount) * 100) : 0;
+    const badgeClass = r.active ? 'active' : 'inactive';
+    const badgeText = r.active ? 'active' : 'idle';
+    return `
+      <tr>
+        <td>${r.ip}</td>
+        <td>
+          <div class="bar-cell">
+            <span>${fmtNum(r.request_count)}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          </div>
+        </td>
+        <td>${fmtTime(r.first_seen)}</td>
+        <td>${fmtTime(r.last_seen)}</td>
+        <td><span class="badge ${badgeClass}"><span class="dot"></span>${badgeText}</span></td>
+      </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th>Requests</th>
+          <th>First Seen</th>
+          <th>Last Seen</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+async function loadAll() {
+  apiBase = document.getElementById('api-base').value.replace(/\/$/, '');
+  hideError();
+  document.getElementById('last-updated').textContent = 'loading…';
+
+  try {
+    await Promise.all([loadDownloads(), loadIPs()]);
+    document.getElementById('last-updated').textContent =
+      'updated ' + new Date().toLocaleTimeString();
+  } catch (err) {
+    showError('Failed to load: ' + err.message + ' — check the backend URL and that analytics routes are deployed.');
+    document.getElementById('last-updated').textContent = 'load failed';
+  }
+}
+
+// Auto-load on open
+loadAll();
+</script>
+
+</body>
+</html>
