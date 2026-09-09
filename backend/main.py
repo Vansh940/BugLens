@@ -38,7 +38,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ─── CORS — scoped to real origins only ───────────────────────────────────
 ALLOWED_ORIGINS = [
-    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "https://buglens-api.onrender.com").split(",")
+    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "https://buglens-api.onrender.com,null").split(",")
     if o.strip()
 ]
 app.add_middleware(
