@@ -1,0 +1,22 @@
+# VS Code
+.vscode/**
+.vscode-test/**
+
+# Source code
+src/**
+**/*.ts
+**/*.map
+
+# Config
+**/tsconfig.json
+.gitignore
+
+# All node_modules excluded (bundled by esbuild)
+node_modules/**
+
+# Packaging artifacts
+*.vsix
+
+# Dev files
+.vscode-test/**
+package-lock.json

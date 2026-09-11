@@ -18,9 +18,12 @@ __pycache__/
 # VS Code Extension
 vscode-extension/node_modules/
 vscode-extension/out/
+vscode-extension/src/
 vscode-extension/*.vsix
 vscode-extension/*.md
 vscode-extension/LICENSE
+vscode-extension/extension.js
+vscode-extension/extension.ts
 
 # Logs
 *.log
@@ -53,3 +56,4 @@ Files.md
 
 venv.txt
 backup
+BugAnalytics.html

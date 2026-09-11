@@ -2,7 +2,7 @@
   "name": "buglens",
   "displayName": "BugLens",
   "description": "Instant AI-powered code review — catch bugs, security flaws, and bad practices before they ship.",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "publisher": "VanshDev",
   "license": "MIT",
   "icon": "icon.png",
@@ -14,10 +14,23 @@
   "bugs": {
     "url": "https://github.com/Vansh940/BugLens/issues"
   },
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Linters", "Other"],
-  "keywords": ["code review", "ai", "bug detection", "security", "linter"],
-  "activationEvents": [],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "code review",
+    "ai",
+    "bug detection",
+    "security",
+    "linter"
+  ],
+  "activationEvents": [
+    "onCommand:buglens.reviewCode"
+  ],
   "main": "./out/extension.js",
   "readme": "README.md",
   "contributes": {
@@ -78,10 +91,12 @@
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "package": "node esbuild.config.js"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
+    "esbuild": "^0.28.2",
     "typescript": "^5.3.0"
   },
   "dependencies": {

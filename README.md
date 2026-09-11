@@ -133,48 +133,6 @@ Python · JavaScript · TypeScript · Java · Go · Rust · C · C++ · C# · Ru
 
 ---
 
-## 🏗️ Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                            Clients                               │
-│                                                                  │
-│  ┌──────────────────┐  ┌─────────────────┐  ┌────────────────┐  │
-│  │  VS Code         │  │  GitHub PR Bot  │  │  REST API      │  │
-│  │  Extension       │  │  (Webhook)      │  │  /docs         │  │
-│  │  Ctrl+Shift+R    │  │  Auto on PR     │  │  Swagger UI    │  │
-│  └────────┬─────────┘  └───────┬─────────┘  └───────┬────────┘  │
-└───────────┼────────────────────┼────────────────────┼───────────┘
-            └────────────────────▼────────────────────┘
-                                 │
-               ┌─────────────────▼──────────────────┐
-               │         FastAPI Backend             │
-               │         (Render — Live 24/7)        │
-               │                                     │
-               │  POST /api/v1/review                │
-               │  POST /api/v1/webhook               │
-               │  GET  /api/v1/history               │
-               │  GET  /api/v1/stats                 │
-               │  GET  /health                       │
-               │                                     │
-               │  ┌─────────────┐ ┌───────────────┐  │
-               │  │    Redis    │ │  Async Queue  │  │
-               │  │   (Upstash) │ │               │  │
-               │  │  24h cache  │ │               │  │
-               │  └─────────────┘ └───────────────┘  │
-               └──────────┬──────────────────────────┘
-                          │
-          ┌───────────────┼────────────────┐
-          │               │                │
-          ▼               ▼                ▼
-  ┌──────────────┐ ┌─────────────┐ ┌─────────────┐
-  │   Groq AI    │ │  PostgreSQL │ │ GitHub API  │
-  │              │ │  (Render)   │ │ PR Comments │
-  └──────────────┘ └─────────────┘ └─────────────┘
-```
-
----
-
 ## 🐙 GitHub PR Bot
 
 Automatically reviews every Pull Request — zero human involvement needed:
