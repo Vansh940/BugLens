@@ -137,14 +137,13 @@ Python · JavaScript · TypeScript · Java · Go · Rust · C · C++ · C# · Ru
 
 Automatically reviews every Pull Request — zero human involvement needed:
 
-1. Deploy backend (see [Deploy to Render](#️-deploy-to-render))
-2. Go to your GitHub repo → **Settings → Webhooks → Add webhook**
-3. Fill in:
+1. Go to your GitHub repo → **Settings → Webhooks → Add webhook**
+2. Fill in:
    - Payload URL: `https://buglens-api.onrender.com/api/v1/webhook`
    - Content type: `application/json`
    - Secret: same as `GITHUB_WEBHOOK_SECRET`
    - Events: **Pull requests** only
-4. Save
+3. Save
 
 Every PR now gets an automatic AI review comment like:
 
