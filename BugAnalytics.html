@@ -339,6 +339,27 @@
 </div>
 
 <div class="panel">
+  <div class="panel-title">Review Engine</div>
+  <div class="panel-sub">Live from <code>/api/v1/engine</code> — the multi-lens reviewer and its self-improvement store</div>
+  <div class="download-row" style="margin-bottom:14px;">
+    <div class="download-item">
+      <div><div class="name">PR runs recorded</div></div>
+      <div class="count" id="eng-runs">—</div>
+    </div>
+    <div class="download-item">
+      <div><div class="name">Findings stored</div></div>
+      <div class="count" id="eng-findings">—</div>
+    </div>
+    <div class="download-item">
+      <div><div class="name">Feedback outcomes</div></div>
+      <div class="count" id="eng-outcomes">—</div>
+    </div>
+  </div>
+  <div id="eng-lenses" class="config-note">Lenses: —</div>
+  <div id="eng-rules" class="config-note" style="margin-top:6px;"></div>
+</div>
+
+<div class="panel">
   <div class="panel-title">IP Activity</div>
   <div class="panel-sub">Every IP that has hit <code>/api/v1/review</code>, ranked by request volume</div>
   <div id="ip-table-container">
@@ -357,6 +378,15 @@ let apiBase = document.getElementById('api-base').value.replace(/\/$/, '');
 function fmtNum(n) {
   if (n === null || n === undefined) return '—';
   return n.toLocaleString();
+}
+
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function fmtTime(iso) {
@@ -426,15 +456,15 @@ async function loadIPs() {
     const badgeText = r.active ? 'active' : 'idle';
     return `
       <tr>
-        <td>${r.ip}</td>
+        <td>${escapeHtml(r.ip)}</td>
         <td>
           <div class="bar-cell">
             <span>${fmtNum(r.request_count)}</span>
             <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
           </div>
         </td>
-        <td>${fmtTime(r.first_seen)}</td>
-        <td>${fmtTime(r.last_seen)}</td>
+        <td>${escapeHtml(fmtTime(r.first_seen))}</td>
+        <td>${escapeHtml(fmtTime(r.last_seen))}</td>
         <td><span class="badge ${badgeClass}"><span class="dot"></span>${badgeText}</span></td>
       </tr>`;
   }).join('');
@@ -456,6 +486,27 @@ async function loadIPs() {
     </div>`;
 }
 
+async function loadEngine() {
+  const data = await fetchJSON('/api/v1/engine');
+  const lenses = data.lenses || [];
+  document.getElementById('eng-lenses').innerHTML =
+    'Lenses: ' + lenses.map(l => `<code>${escapeHtml(l.emoji + ' ' + l.name)}</code>`).join(' ');
+  const r = data.rules || {};
+  document.getElementById('eng-rules').textContent =
+    `Rules — max_comments ${r.max_comments}, min_severity ${r.min_severity}, ` +
+    `skip_nits ${r.skip_nits}, verify ${r.verify}, source ${r.source}`;
+
+  const adminKey = document.getElementById('admin-key').value;
+  try {
+    const stats = await fetchJSON('/api/v1/engine/stats', { 'X-Admin-Key': adminKey });
+    document.getElementById('eng-runs').textContent = fmtNum(stats.runs);
+    document.getElementById('eng-findings').textContent = fmtNum(stats.findings);
+    document.getElementById('eng-outcomes').textContent = fmtNum(stats.outcomes);
+  } catch {
+    document.getElementById('eng-runs').textContent = 'n/a';
+  }
+}
+
 async function loadAll() {
   apiBase = document.getElementById('api-base').value.replace(/\/$/, '');
   localStorage.setItem('bl-api-base', document.getElementById('api-base').value);
@@ -464,7 +515,7 @@ async function loadAll() {
   document.getElementById('last-updated').textContent = 'loading…';
 
   try {
-    await Promise.all([loadDownloads(), loadIPs()]);
+    await Promise.all([loadDownloads(), loadIPs(), loadEngine()]);
     document.getElementById('last-updated').textContent =
       'updated ' + new Date().toLocaleTimeString();
   } catch (err) {

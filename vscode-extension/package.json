@@ -1,7 +1,7 @@
 {
   "name": "buglens",
   "displayName": "BugLens",
-  "description": "Instant AI-powered code review — catch bugs, security flaws, and bad practices before they ship.",
+  "description": "Catches bugs, security flaws, and risky patterns in your code before they ship.",
   "version": "0.13.0",
   "publisher": "VanshDev",
   "license": "MIT",

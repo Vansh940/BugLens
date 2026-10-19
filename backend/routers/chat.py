@@ -20,7 +20,7 @@ def _rotate_chat_key() -> bool:
     global _chat_key_index
     if _chat_key_index < len(API_KEYS) - 1:
         _chat_key_index += 1
-        print(f"[BugLens Chat] Rate limit hit — rotating to key {_chat_key_index + 1}/{len(API_KEYS)}")
+        print(f"[BugLens Chat] Rate limit hit, rotating to key {_chat_key_index + 1}/{len(API_KEYS)}")
         return True
     return False
 
@@ -44,6 +44,9 @@ class ChatResponse(BaseModel):
 async def chat_about_code(request_body: ChatRequest, request: Request):
     await enforce_daily_budget(request, bucket="chat", max_per_day=300)
 
+    if not API_KEYS:
+        return ChatResponse(reply="Chat is not configured on this server yet.")
+
     system_prompt = f"""You are BugLens, an expert code reviewer assistant.
 The user is asking questions about this {request_body.language} code from {request_body.filename or 'their file'}.
 
@@ -55,7 +58,7 @@ CODE BEING DISCUSSED:
 
 RULES:
 - Answer questions about this specific code only
-- Be concise and specific — reference exact line numbers
+- Be concise and specific, reference exact line numbers
 - Never make up issues that aren't in the code
 - If asked to explain an issue, briefly mention the real-world impact
 - If asked for a fix, provide exact working code
@@ -63,7 +66,7 @@ RULES:
 RESPONSE FORMAT (strict):
 - Write in a formal, professional tone
 - Use short bullet points, NOT paragraphs
-- NEVER use Markdown tables (no | characters) — they render badly in this app
+- NEVER use Markdown tables (no | characters), they render badly in this app
 - Keep the entire response under 6-8 bullet points total
 - Structure each issue like this:
 

@@ -31,7 +31,7 @@ async def post_review_comment(owner: str, repo: str,
             headers=HEADERS,
             json={"body": body}
         )
-        print(f"Post comment status: {resp.status_code} — {resp.text[:200]}")
+        print(f"Post comment status: {resp.status_code}, {resp.text[:200]}")
 
 async def get_diff_type(owner: str, repo: str, base_sha: str, head_sha: str) -> str:
     """Compare base..head and return a label describing what kind of change this PR contains."""
@@ -45,14 +45,14 @@ async def get_diff_type(owner: str, repo: str, base_sha: str, head_sha: str) -> 
         return ""
     statuses = {f["status"] for f in files}
     if statuses == {"added"}:
-        return "🆕 **Completely new code** — no existing files were modified"
+        return "🆕 **Completely new code**, no existing files were modified"
     elif "added" not in statuses:
         modified = len(files)
-        return f"✏️ **Modifications to existing code** — {modified} file(s) changed"
+        return f"✏️ **Modifications to existing code**, {modified} file(s) changed"
     else:
         added = sum(1 for f in files if f["status"] == "added")
         modified = sum(1 for f in files if f["status"] in ("modified", "renamed"))
-        return f"🔀 **Mixed changes** — {added} new file(s) + {modified} modified file(s)"
+        return f"🔀 **Mixed changes**, {added} new file(s) + {modified} modified file(s)"
 
 def format_review_as_markdown(filename: str, review, diff_label: str = "") -> str:
     emoji = {"critical": "🔴", "warning": "🟡", "suggestion": "🔵"}

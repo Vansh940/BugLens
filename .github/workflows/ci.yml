@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "enhance/**"]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi "uvicorn[standard]" pydantic python-dotenv httpx groq redis "sqlalchemy[asyncio]" aiosqlite greenlet slowapi PyYAML pytest pytest-asyncio
+      - name: Byte-compile everything
+        run: python -m compileall -q buglens core models routers services middleware main.py
+      - name: Run tests
+        env:
+          GITHUB_WEBHOOK_SECRET: ci-secret
+          GITHUB_TOKEN: ghp_ci
+          OPENAI_API_KEY: ci-key
+          BUGLENS_DB: ${{ runner.temp }}/buglens_ci.sqlite
+          DATABASE_URL: sqlite+aiosqlite:///${{ runner.temp }}/buglens_ci_app.db
+        run: python -m pytest -q
+
+  extension:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode-extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: vscode-extension/package-lock.json
+      - run: npm ci
+      - run: npm run compile

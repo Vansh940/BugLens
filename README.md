@@ -1,249 +1,112 @@
 <div align="center">
 
-<img src="vscode-extension/icon.png" width="128" alt="BugLens Logo"/>
+<img src="vscode-extension/icon.png" width="112" alt="BugLens"/>
 
 # BugLens
 
-### AI-powered code review, right inside IDE
+**AI code review that survives scrutiny.** Diff-native, evidence-gated, and it remembers
+what it already told you.
 
-[![Version](https://img.shields.io/badge/version-0.10.0-6366f1?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens)
-[![Marketplace](https://img.shields.io/visual-studio-marketplace/i/VanshDev.buglens?style=flat-square&label=installs&color=22c55e)](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
-[![Redis](https://img.shields.io/badge/Redis-Upstash-DC382D?style=flat-square&logo=redis&logoColor=white)](https://upstash.com)
-[![Live](https://img.shields.io/badge/API-Live%20on%20Render-46E3B7?style=flat-square)](https://buglens-api.onrender.com/docs)
-
-**Catch bugs · Fix security flaws · Improve code quality — before it ships**
-
-[🔌 Install Extension](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens) · [📖 API Docs](https://buglens-api.onrender.com/docs) · [🐛 Report Bug](https://github.com/Vansh940/buglens/issues)
+[Install](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens) ·
+[API docs](https://buglens-api.onrender.com/docs) ·
+[Engine](docs/engine.md) · [Self-hosting](docs/configuration.md) · [Report a bug](https://github.com/Vansh940/buglens/issues)
 
 </div>
 
 ---
 
-## 📌 What is BugLens?
+Three surfaces, one review engine:
 
-BugLens is a **VS Code extension** that reviews your code using AI and gives you instant, actionable feedback — directly inside your editor. No copy-pasting into ChatGPT. No leaving VS Code. Just press `Ctrl+Shift+R` and get a full code review in seconds.
+- **VS Code extension**: `Ctrl+Shift+R` reviews the current file or selection, with inline
+  highlights and hover fixes.
+- **GitHub PR bot**: reviews every pull request, posts one consolidated review with
+  apply-in-one-click suggestion blocks. It never blocks a PR.
+- **Dashboard + API**: `/api/v1/review`, history, and engine stats.
+- **Local MCP server**: read-only tools over stdio for MCP clients such as Claude Desktop and
+  Cursor. See [operations.md](docs/operations.md#mcp-server).
 
-It also works as a **GitHub PR Bot** — automatically reviewing every Pull Request and posting structured comments before any human reviewer sees the code.
+## Install
 
----
-
-## ✨ Features
-
-- 🔴 **Bug Detection** — logic errors, null pointer risks, off-by-one mistakes
-- 🔐 **Security Scanning** — SQL injection, XSS, hardcoded secrets, path traversal
-- ⚡ **Performance Analysis** — N+1 queries, blocking I/O, memory leaks
-- 🎨 **Style Violations** — naming conventions, dead code, duplication
-- 📍 **Inline Highlights** — problem lines underlined red/yellow/purple directly in editor
-- 💬 **Hover Tooltips** — hover any highlighted line to see issue + fix instantly
-- 📊 **Score Card** — 0–100 quality score with label (Excellent / Good / Needs Work)
-- 📋 **Copy Fix** — one-click copy of the exact fix suggestion
-- 🔗 **Jump to Line** — click any issue to jump directly to that line
-- 🤖 **GitHub PR Bot** — auto-reviews every pull request with zero human involvement
-- 📈 **Status Bar** — live score shown in VS Code bottom bar after every review
-- 💾 **Smart Caching** — Redis cache gives ~35% cache hit rate, repeat reviews in <50ms
-- 🌐 **30+ Languages** — Python, JS, TS, Java, Go, Rust, C/C++, Swift, Dart, SQL and more
-
----
-
-## 🚀 Install in 30 Seconds
-
-### VS Code Marketplace
-
-1. Open VS Code
-2. Press `Ctrl+Shift+X`
-3. Search **"BugLens"**
-4. Click **Install**
-5. Press `Ctrl+Shift+R` on any code file
-
-**Or install directly:**
 ```bash
 code --install-extension VanshDev.buglens
 ```
 
----
+Or: `Ctrl+Shift+X` → search **BugLens** → Install. Then open a file and press `Ctrl+Shift+R`.
 
-## 🎬 Demo
+## Use
 
-Open any file and press `Ctrl+Shift+R`:
-
-**Input code:**
-```python
-def get_user(id):
-    query = f"SELECT * FROM users WHERE id = {id}"
-    return db.execute(query)
-```
-
-**BugLens output:**
-
-```
-🔍 BugLens Review — users.py
-
-  35 / 100    CRITICAL
-
-┌──────────────────────────────────────────────────────────┐
-│ 🔴 CRITICAL — SQL Injection via f-string                 │
-│ 📍 Line 2  (click to jump)                               │
-│                                                          │
-│ User input is directly interpolated into the SQL query,  │
-│ allowing attackers to manipulate or destroy your database│
-│                                                          │
-│ Fix  Use parameterized queries:                          │
-│      db.execute("SELECT * FROM users                     │
-│      WHERE id = $1", [id])              [Copy Fix]       │
-└──────────────────────────────────────────────────────────┘
-
-✨ What's Good
-  • Function is concise and focused on a single task
-```
-
-Line 2 is also **underlined red directly in the editor** — hover to see the issue without opening the panel.
-
----
-
-## ⌨️ How to Use
-
-| Action | How |
+| Action | Shortcut |
 |---|---|
-| Review current file | `Ctrl+Shift+R` / `Cmd+Shift+R` |
-| Review selected code | Select code → `Ctrl+Shift+R` |
-| Click toolbar button | 🔍 icon in top-right editor bar |
-| Right-click menu | Right-click → **BugLens: Review This Code** |
-| Status bar | Click **🐛 BugLens** at bottom right |
+| Review file or selection | `Ctrl+Shift+R` / `Cmd+Shift+R` |
+| Toolbar | magnifier icon in the editor title bar |
+| Right-click | **BugLens: Review This Code** |
+| Re-review a PR on demand | comment `@buglens review` |
+| Ask about the PR | comment `@buglens why`, `@buglens explain`, or any question |
+| Get a fix | comment `@buglens fix` for a copy-ready Fix-All prompt |
+| See what BugLens learned for a repo | `GET /api/v1/engine/learn?repo=owner/name` |
+
+Point the extension at your own backend with the `buglens.apiUrl` setting.
+
+## Why the output is trustworthy
+
+- **Diff-native.** Every finding is anchored to an added line and quoted with evidence. No
+  line, no finding.
+- **Two-gate verification.** A machine gate (line exists in the diff, evidence actually
+  present) plus a bounded model gate. Deterministic hits (secrets) skip both gates.
+- **Real tools, not vibes.** Turn on `linters:` and local linters/SAST (ruff, bandit, eslint,
+  shellcheck, hadolint and more) fold their output in as ground-truth findings the model cannot
+  argue away. No Docker, no WSL, missing tools are simply skipped.
+- **Reads as a stack, not a dump.** The walkthrough groups the diff into ordered chapters
+  (schema, models, logic, api, ui, config, tests, docs) with a deterministic pre-merge table
+  (status + fix per check), so you review the change bottom-up.
+- **Says what it thinks, in one line.** Every review opens with the verdict and why, a
+  confidence score, and separate merge and security risk, scoped to a named commit. Findings
+  carry a P1/P2/P3 priority and quote the evidence above the prose.
+- **One review per PR.** Never a comment storm. The same defect found by several lenses folds
+  into one comment that lists the lenses and the other places it shows up; pushes don't
+  duplicate it, a fixed finding's thread gets a "fixed in `<sha>`" note, and only a
+  confirmed-gone comment is collapsed as outdated. A still-open finding is never touched.
+- **Learns.** 👍/👎 reactions suppress repeated noise, inject learned advisories into future
+  prompts, demote a lens this repo keeps rejecting, and propose `.buglens.yml` rules a human
+  applies by hand. On merge it checks whether each finding was actually fixed.
+- **Codebase-aware.** A persistent local index of the repo brings dependencies, importers,
+  tests and earlier reviews into context, and ripple analysis names the callers of every
+  function that changed.
+- **Findings in the Checks UI.** Opt-in check-run annotations surface every finding in the
+  Checks tab and the Files changed diff. They need a GitHub App install and never block a
+  merge by default.
+- **Symbol-aware and budgeted.** Findings are grouped by the symbol they change, and per-lens
+  caps stop one lens from dominating the review comment.
+
+Full detail: **[docs/engine.md](docs/engine.md)**.
+
+## GitHub PR bot
+
+Repo → **Settings → Webhooks → Add webhook**:
+
+| Field | Value |
+|---|---|
+| Payload URL | `https://your-host/api/v1/webhook` |
+| Content type | `application/json` |
+| Secret | the same string as `GITHUB_WEBHOOK_SECRET` |
+| Events | **Pull requests**, **Issue comments**, **Pull request review comments**, **Reactions** |
+
+Host it yourself with SQLite: no Redis, no queue, no vector DB required. See
+[docs/configuration.md](docs/configuration.md).
+
+## Docs
+
+| | |
+|---|---|
+| [engine.md](docs/engine.md) | lenses, verify gate, tickets, code graph, recall, repo rules |
+| [api.md](docs/api.md) | endpoints and request/response examples |
+| [configuration.md](docs/configuration.md) | settings, `.buglens.yml`, env vars, deployment |
+| [operations.md](docs/operations.md) | concurrency, caching, measured limits, troubleshooting |
+| [faq.md](docs/faq.md) | common questions |
+| [contributing.md](docs/contributing.md) | dev setup, tests, architecture pointers |
+
+PRs to this repo are reviewed by BugLens itself.
 
 ---
 
-## ⚙️ Settings
-
-Open VS Code Settings (`Ctrl+,`) → search **"buglens"**:
-
-| Setting | Default | Description |
-|---|---|---|
-| `buglens.apiUrl` | `https://buglens-api.onrender.com` | Backend server URL |
-| `buglens.reviewOnSave` | `false` | Auto-review on every file save |
-| `buglens.showInlineHighlights` | `true` | Colored underlines on problem lines |
-
----
-
-## 🌐 Supported Languages
-
-Python · JavaScript · TypeScript · Java · Go · Rust · C · C++ · C# · Ruby · PHP · Swift · Dart · Kotlin · Scala · HTML · CSS · SCSS · SQL · Bash · YAML · JSON · Elixir · Haskell · Clojure · R · Julia · Lua · and more
-
----
-
-## 🐙 GitHub PR Bot
-
-Automatically reviews every Pull Request — zero human involvement needed:
-
-1. Go to your GitHub repo → **Settings → Webhooks → Add webhook**
-2. Fill in:
-   - Payload URL: `https://buglens-api.onrender.com/api/v1/webhook`
-   - Content type: `application/json`
-   - Secret: same as `GITHUB_WEBHOOK_SECRET`
-   - Events: **Pull requests** only
-3. Save
-
-Every PR now gets an automatic AI review comment like:
-
-```
-🔍 BugLens Review: auth/login.py
-Score: 62/100 | Issues: 3
-
-🔴 [CRITICAL] SQL Injection — Line 14
-🟡 [WARNING] Hardcoded token expiry — Line 8
-🔵 [SUGGESTION] Missing type hints — Line 1
-```
-
----
-
-
-## 📊 API Reference
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/v1/review` | Submit code for AI review |
-| `POST` | `/api/v1/webhook` | GitHub webhook receiver |
-| `GET` | `/api/v1/history` | Review history |
-| `GET` | `/api/v1/stats` | Analytics and stats |
-| `GET` | `/health` | Health check |
-
-**Interactive docs:** [buglens-api.onrender.com/docs](https://buglens-api.onrender.com/docs)
-
-### Example
-
-```bash
-curl -X POST https://buglens-api.onrender.com/api/v1/review \
-  -H "Content-Type: application/json" \
-  -d '{
-    "code": "def divide(a, b):\n    return a / b",
-    "language": "python",
-    "filename": "math.py"
-  }'
-```
-
-```json
-{
-  "summary": "Simple function missing division by zero protection.",
-  "score": 52,
-  "issues": [{
-    "severity": "critical",
-    "category": "bug",
-    "line_number": 2,
-    "title": "Division by zero not handled",
-    "description": "If b is 0, this raises ZeroDivisionError and crashes.",
-    "fix": "if b == 0: raise ValueError('Divisor cannot be zero')\nreturn a / b"
-  }],
-  "positive_aspects": ["Concise and readable"],
-  "model_used": "meta-llama/llama-4-scout-17b-16e-instruct"
-}
-```
-
----
----
-
-## ❓ FAQ
-
-**Q: Is it free to use?**
-A: Yes — the hosted extension connects to a free backend. No signup, no credit card.
-
-**Q: Does my code get stored?**
-A: No — only review metadata (score, issue count, language) is stored. Your actual code is never persisted.
-
-**Q: How accurate are the reviews?**
-A: Very accurate for common issues like SQL injection, null pointers, and XSS. Treat it as a smart first pass — not a replacement for human code review.
-
-**Q: Can I self-host the backend?**
-A: Yes — see the [Self Hosting](#-self-hosting) section.
-
-**Q: What if the backend is slow to respond?**
-A: The free Render tier sleeps after 15 minutes of inactivity. First request may take ~30 seconds to wake up. UptimeRobot prevents this by pinging every 5 minutes.
-
-**Q: Can I point the extension to my own backend?**
-A: Yes — VS Code Settings → search "buglens" → change `apiUrl` to your server URL.
-
----
-
-## 🤝 Contributing
-
-1. Fork the repo
-2. Create branch: `git checkout -b feature/your-feature`
-3. Commit: `git commit -m "Add your feature"`
-4. Push: `git push origin feature/your-feature`
-5. Open a Pull Request
-
-The BugLens GitHub bot will **automatically review your PR**. 🤖
-
----
-
-
-<div align="center">
-
-Built with ❤️ by **[Vansh](https://github.com/Vansh940)**
-
-⭐ Star this repo if BugLens helped you write better code!
-
-[![VS Code Marketplace](https://img.shields.io/badge/Install%20on-VS%20Code-007ACC?style=for-the-badge&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=VanshDev.buglens)
-
-</div>
+MIT licensed. Built by [Vansh](https://github.com/Vansh940).

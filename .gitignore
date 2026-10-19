@@ -48,6 +48,10 @@ build/
 node_modules/
 npm-debug.log*
 
+# Local e2e/Playwright harness (not part of the project)
+e2e/
+docs/assets/
+
 ai_code_reviewer_guide_groq.md
 
 bad_code.py
