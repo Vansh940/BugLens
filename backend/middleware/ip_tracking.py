@@ -40,7 +40,7 @@ REDIS_KEY_KNOWN = "buglens:ip:known"
 
 class IPTrackingMiddleware(BaseHTTPMiddleware):
     """
-    No constructor args needed — reuses the same connection pool as
+    No constructor args needed, reuses the same connection pool as
     cache_service.py (redis.asyncio.ConnectionPool), consistent with how
     the rest of the codebase talks to Redis (a fresh redis.Redis(pool)
     per call, not one long-lived client held on app.state).

@@ -1,6 +1,86 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 
+// ─── Repo awareness ──────────────────────────────────────────────────────────
+// The PR bot reviews against the repo's code graph and its own past reviews.
+// The IDE can hand over the same context cheaply: which repo, which branch, the
+// local modules this file imports, and a few excerpts of those modules.
+const IMPORT_PATTERNS: Record<string, RegExp[]> = {
+  python: [/^\s*from\s+([.\w]+)\s+import\b/gm, /^\s*import\s+([.\w]+)/gm],
+  javascript: [/^\s*import\s+.*?from\s+['"]([^'"]+)['"]/gm, /require\(\s*['"]([^'"]+)['"]\s*\)/g],
+  typescript: [/^\s*import\s+.*?from\s+['"]([^'"]+)['"]/gm, /require\(\s*['"]([^'"]+)['"]\s*\)/g],
+  go: [/^\s*(?:import\s+)?(?:\w+\s+)?"([^"]+)"/gm],
+  rust: [/^\s*use\s+([\w:]+)/gm],
+  java: [/^\s*import\s+([\w.]+);/gm],
+};
+
+async function readTextFile(uri: vscode.Uri): Promise<string | undefined> {
+  try {
+    const bytes = await vscode.workspace.fs.readFile(uri);
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch {
+    return undefined;
+  }
+}
+
+async function getRepoSlug(): Promise<string | undefined> {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) { return undefined; }
+  const text = await readTextFile(vscode.Uri.joinPath(folders[0].uri, '.git', 'config'));
+  if (!text) { return undefined; }
+  const m = /url\s*=\s*(\S+)/.exec(text);
+  if (!m) { return undefined; }
+  const remote = m[1]
+    .replace(/^git@[^:]+:/, '')
+    .replace(/^https?:\/\/[^/]+\//, '')
+    .replace(/\.git$/, '');
+  return remote.includes('/') ? remote : undefined;
+}
+
+async function getBranch(): Promise<string | undefined> {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) { return undefined; }
+  const text = await readTextFile(vscode.Uri.joinPath(folders[0].uri, '.git', 'HEAD'));
+  if (!text) { return undefined; }
+  const m = /ref:\s*refs\/heads\/(.+)/.exec(text.trim());
+  return m ? m[1] : undefined;
+}
+
+function collectImports(code: string, language: string): string[] {
+  const patterns = IMPORT_PATTERNS[language] || [];
+  const found = new Set<string>();
+  for (const rx of patterns) {
+    for (const m of code.matchAll(rx)) {
+      if (m[1]) { found.add(m[1]); }
+      if (found.size >= 20) { return [...found]; }
+    }
+  }
+  return [...found];
+}
+
+async function collectRelated(editor: vscode.TextEditor, specs: string[]): Promise<Record<string, string> | undefined> {
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  if (!folder) { return undefined; }
+  const out: Record<string, string> = {};
+  for (const spec of specs.slice(0, 5)) {
+    if (!spec.startsWith('.') && !spec.includes('/')) { continue; }   // local only
+    for (const ext of ['.ts', '.js', '.py', '.go', '.rs', '.java', '']) {
+      const guess = vscode.Uri.joinPath(editor.document.uri, '..', spec + ext);
+      try {
+        const bytes = await vscode.workspace.fs.readFile(guess);
+        const text  = new TextDecoder('utf-8').decode(bytes).slice(0, 4000);
+        const rel   = vscode.workspace.asRelativePath(guess);
+        if (text) { out[rel] = text; }
+        break;
+      } catch {
+        continue;
+      }
+    }
+    if (Object.keys(out).length >= 5) { break; }
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 // Baked into the published bundle — not a secret from a determined
 // attacker who decompiles the extension, but stops casual scripted abuse.
 const EXTENSION_KEY = '';
@@ -19,6 +99,26 @@ const EXT_TO_LANG: Record<string, string> = {
   yml: 'yaml', yaml: 'yaml', json: 'json',
 };
 
+// ─── Severity adapter ────────────────────────────────────────────────────────
+// The backend speaks a richer severity set (blocker/major/minor/nit and the
+// aliases high/medium/low). The UI below only has three buckets, so normalise
+// once here instead of hoping the server sends legacy strings.
+function normalizeSeverity(sev: string): 'critical' | 'warning' | 'suggestion' {
+  switch ((sev || '').toLowerCase()) {
+    case 'blocker':
+    case 'critical':
+    case 'high':
+    case 'error':
+      return 'critical';
+    case 'major':
+    case 'warning':
+    case 'medium':
+      return 'warning';
+    default:
+      return 'suggestion';
+  }
+}
+
 // ─── Globals ─────────────────────────────────────────────────────────────────
 let criticalDeco:   vscode.TextEditorDecorationType;
 let warningDeco:    vscode.TextEditorDecorationType;
@@ -34,7 +134,7 @@ let reviewedViewColumn: vscode.ViewColumn   | undefined;
 function getApiUrl(): string {
   return vscode.workspace
     .getConfiguration('buglens')
-    .get<string>('apiUrl', 'http://localhost:8000');
+    .get<string>('apiUrl', 'https://buglens-api.onrender.com');
 }
 
 // ─── Decorations ─────────────────────────────────────────────────────────────
@@ -87,19 +187,22 @@ function applyDecorations(editor: vscode.TextEditor, issues: any[]) {
     const lineIdx = issue.line_number - 1;
     if (lineIdx < 0 || lineIdx >= editor.document.lineCount) { continue; }
 
+    const sev   = normalizeSeverity(issue.severity);
     const line  = editor.document.lineAt(lineIdx);
     const range = new vscode.Range(line.range.start, line.range.end);
     const hoverMsg = new vscode.MarkdownString(
-      `**BugLens [${issue.severity.toUpperCase()}]** — ${issue.title}\n\n` +
+      `**BugLens [${sev.toUpperCase()}]** — ${issue.title}\n\n` +
       `${issue.description}\n\n` +
       `**Fix:** \`${issue.fix}\``
     );
-    hoverMsg.isTrusted = true;
+    // Do NOT trust the markdown: title/description/fix are model output and
+    // trusting it would let a crafted finding run commands via links.
+    hoverMsg.isTrusted = false;
     const deco: vscode.DecorationOptions = { range, hoverMessage: hoverMsg };
 
-    if (issue.severity === 'critical')     { critical.push(deco); }
-    else if (issue.severity === 'warning') { warning.push(deco); }
-    else                                   { suggestion.push(deco); }
+    if (sev === 'critical')     { critical.push(deco); }
+    else if (sev === 'warning') { warning.push(deco); }
+    else                        { suggestion.push(deco); }
   }
 
   editor.setDecorations(criticalDeco,   critical);
@@ -178,6 +281,13 @@ async function runReview(editor: vscode.TextEditor) {
   const ext      = filename.split('.').pop()?.toLowerCase() || '';
   const language = EXT_TO_LANG[ext] || ext || 'plaintext';
 
+  // Repo-aware context: which repo/branch, what this file imports, and excerpts
+  // of the local modules it imports (so IDE findings match PR findings).
+  const repo    = await getRepoSlug();
+  const branch  = await getBranch();
+  const imports = collectImports(code, language);
+  const related = repo ? await collectRelated(editor, imports) : undefined;
+
   if (currentPanel) {
     currentPanel.reveal(vscode.ViewColumn.Beside);
   } else {
@@ -199,16 +309,17 @@ async function runReview(editor: vscode.TextEditor) {
         await jumpToLine(msg.line);
       }
       if (msg.command === 'chat') {
+        const id = msg.payload?.id;
         try {
           const { data } = await axios.post(
             `${getApiUrl()}/api/v1/chat`,
             msg.payload,
             { headers: { 'X-Extension-Key': EXTENSION_KEY }, timeout: 60000 }
           );
-          currentPanel?.webview.postMessage({ command: 'chatReply', reply: data.reply });
+          currentPanel?.webview.postMessage({ command: 'chatReply', id, reply: data.reply });
         } catch (err: any) {
           const detail = err.response?.data?.detail ?? err.message ?? 'Unknown error';
-          currentPanel?.webview.postMessage({ command: 'chatError', error: detail });
+          currentPanel?.webview.postMessage({ command: 'chatError', id, error: detail });
         }
       }
     });
@@ -221,7 +332,7 @@ async function runReview(editor: vscode.TextEditor) {
   try {
     const { data } = await axios.post(
       `${getApiUrl()}/api/v1/review`,
-      { code, language, filename },
+      { code, language, filename, repo, branch, imports, related },
       { headers: { 'X-Extension-Key': EXTENSION_KEY }, timeout: 60000  }
     );
 
@@ -246,6 +357,10 @@ async function runReview(editor: vscode.TextEditor) {
       msg = 'BugLens: ' + (detail ?? 'Bad request.');
     } else if (status === 429) {
       msg = 'BugLens: Rate limit hit. Please wait a moment and try again.';
+    } else if (status === 401) {
+      msg = 'BugLens: Extension key rejected. Check buglens.apiUrl / the server secret.';
+    } else if (status === 503) {
+      msg = 'BugLens: Review engine is not configured on the server (missing LLM key).';
     } else if (status === 500) {
       msg = 'BugLens: Server error. Check the backend logs for details.';
     }
@@ -403,17 +518,19 @@ function getReviewHtml(
   };
 
   const issues: any[] = review.issues ?? [];
-  const critical   = issues.filter(i => i.severity === 'critical').length;
-  const warning    = issues.filter(i => i.severity === 'warning').length;
-  const suggestion = issues.filter(i => i.severity === 'suggestion').length;
+  const critical   = issues.filter(i => normalizeSeverity(i.severity) === 'critical').length;
+  const warning    = issues.filter(i => normalizeSeverity(i.severity) === 'warning').length;
+  const suggestion = issues.filter(i => normalizeSeverity(i.severity) === 'suggestion').length;
 
   const issuesHtml = issues.length
-  ? issues.map((issue, idx) => `
-    <div class="issue-card" style="border-left-color:${sevColor[issue.severity] ?? '#555'}">
+  ? issues.map((issue, idx) => {
+      const sev = normalizeSeverity(issue.severity);
+      return `
+    <div class="issue-card" style="border-left-color:${sevColor[sev] ?? '#555'}">
       <div class="issue-header">
-        <span>${sevIcon[issue.severity] ?? '⚪'}</span>
-        <span class="sev-badge" style="color:${sevColor[issue.severity]};border-color:${sevColor[issue.severity]}44">
-          ${issue.severity.toUpperCase()}
+        <span>${sevIcon[sev] ?? '⚪'}</span>
+        <span class="sev-badge" style="color:${sevColor[sev]};border-color:${sevColor[sev]}44">
+          ${sev.toUpperCase()}
         </span>
         <span class="issue-title">${escapeHtml(issue.title)}</span>
       </div>
@@ -427,7 +544,8 @@ function getReviewHtml(
         <div class="fix-box" id="fix-${idx}">${escapeHtml(issue.fix)}</div>
         <button class="copy-btn" onclick="copyFix('fix-${idx}')">Copy Fix</button>
       </div>
-    </div>`).join('')
+    </div>`;
+    }).join('')
   : `<div class="no-issues">✅ No issues found — great code!</div>`;
 
 const positivesHtml = review.positive_aspects?.length
@@ -707,6 +825,7 @@ const positivesHtml = review.positive_aspects?.length
       vscode.postMessage({
         command: 'chat',
         payload: {
+          id:             loadingId,
           code:           CODE,
           language:       LANG,
           filename:       FILENAME,
@@ -714,21 +833,26 @@ const positivesHtml = review.positive_aspects?.length
           messages:       chatHistory
         }
       });
-
-      window.addEventListener('message', function handler(event) {
-        if (event.data.command === 'chatReply') {
-          window.removeEventListener('message', handler);
-          const el = document.getElementById(loadingId);
-          if (el) { el.className = 'chat-msg bot'; el.innerHTML = formatChatReply(event.data.reply); }
-          chatHistory.push({ role: 'assistant', content: event.data.reply });
-        }
-        if (event.data.command === 'chatError') {
-          window.removeEventListener('message', handler);
-          const el = document.getElementById(loadingId);
-          if (el) { el.className = 'chat-msg bot'; el.textContent = 'Error: ' + event.data.error; }
-        }
-      });
     }
+
+    // One permanent listener, routed by the id each request carries. Registering a listener per
+    // send meant every handler answered every reply: with two questions in flight the second
+    // bubble showed the first answer, and both handlers unbound on that first reply so the real
+    // second answer was dropped.
+    window.addEventListener('message', function (event) {
+      const id = event.data && event.data.id;
+      if (!id) { return; }
+      const el = document.getElementById(id);
+      if (!el) { return; }
+      if (event.data.command === 'chatReply') {
+        el.className = 'chat-msg bot';
+        el.innerHTML = formatChatReply(event.data.reply);
+        chatHistory.push({ role: 'assistant', content: event.data.reply });
+      } else if (event.data.command === 'chatError') {
+        el.className = 'chat-msg bot';
+        el.textContent = 'Error: ' + event.data.error;
+      }
+    });
 
             function escapeHtml(str) {
           return str

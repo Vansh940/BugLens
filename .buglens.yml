@@ -1,0 +1,17 @@
+# BugLens reviews itself with this file (dogfood). See ITERATION.md for docs.
+max_comments: 10
+min_severity: low
+verify: true
+verify_top_n: 12
+consensus: 1        # 2-3 = extra passes with shuffled diffs + majority vote (more tokens)
+skip_nits: true
+post_check_run: true
+ignore_paths:
+  - "*.lock"
+  - "*.min.js"
+  - "vscode-extension/out/*"
+  - "vscode-extension/node_modules/*"
+custom_rules:
+  - "Never call an external API without an explicit timeout."
+  - "New HTTP endpoints need a test under backend/tests/."
+  - "Never log secrets, tokens, or full request bodies."

@@ -14,7 +14,7 @@ Wire this into main.py with:
     app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 
 Uses the same `pool` (redis.asyncio.ConnectionPool) as cache_service.py and
-ip_tracking.py — a fresh redis.Redis(connection_pool=pool) per call. main.py
+ip_tracking.py, a fresh redis.Redis(connection_pool=pool) per call. main.py
 has no lifespan-created Redis client and no app.state.redis, so nothing here
 depends on that.
 
@@ -146,7 +146,7 @@ async def get_download_stats(force_refresh: bool = False):
 
     Cached in Redis for DOWNLOADS_CACHE_TTL_SECONDS. Pass ?force_refresh=true
     to bypass the cache (useful for debugging, but don't call this on every
-    dashboard page load — be a good citizen of both APIs).
+    dashboard page load, be a good citizen of both APIs).
     """
     r = _redis()
 
