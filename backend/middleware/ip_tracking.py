@@ -74,3 +74,5 @@ class IPTrackingMiddleware(BaseHTTPMiddleware):
         pipe.hset(REDIS_KEY_LAST_SEEN, ip, now_iso)
         pipe.sadd(REDIS_KEY_KNOWN, ip)
         await pipe.execute()
+
+        
